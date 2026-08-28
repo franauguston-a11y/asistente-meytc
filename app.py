@@ -485,4 +485,3 @@ with st.expander("💬 Manual Virtual y Asistente de IA (Cátedra MEYTC)", expan
             * En **Polipastos**, probá consultando por *aparejos*, *ventaja mecánica* o *cables*.
             * Para buscar componentes comerciales, utilizá la pestaña **🔍 Buscador de Catálogos (IA)**.
             """)
-

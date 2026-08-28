@@ -200,3 +200,76 @@ elif modulo == "🔍 Buscador de Catálogos (IA)":
 
             else:
                 st.info("🔎 **Análisis paramétrico de la consulta:** Analizando atributos solicitados.")
+# ==============================================================================
+# SECCIÓN INFERIOR GLOBAL: ASISTENTE Y MANUAL VIRTUAL DE LA CÁTEDRA
+# ==============================================================================
+st.markdown("---")
+with st.expander("💬 Manual Virtual y Asistente de IA (Cátedra MEYTC)", expanded=False):
+    st.write("Hacé tu consulta teórica o práctica sobre la materia (ej. *¿Qué es el autobloqueo?*, *¿Qué es un polipasto?*, *¿Cómo elijo un cable?*):")
+    
+    user_query = st.text_input("Consulta al JTP Virtual:", placeholder="Escribí acá tu duda teórica o de cálculo...")
+    
+    if user_query:
+        q = user_query.lower().strip()
+        
+        # 1. CONCEPTOS TEÓRICOS DE TORNILLOS
+        if "autobloqueo" in q or "autobloqueante" in q:
+            st.chat_message("assistant").markdown("""
+            **📖 Manual Teórico - Autobloqueo:**  
+            Un tornillo es **autobloqueante** cuando no puede ser accionado en sentido inverso por la sola acción de la carga axial.  
+            * **Condición matemática:** El ángulo de hélice ($\alpha$) debe ser menor o igual al ángulo de rozamiento corregido ($\rho'$), o $\tan(\alpha) \le \mu'$.  
+            * **Aplicación:** Es fundamental en elevación por seguridad, para evitar que la carga caiga si se corta la fuerza motriz.
+            """)
+            
+        elif "rosca trapezoidal" in q or "din 103" in q or "flanco" in q:
+            st.chat_message("assistant").markdown("""
+            **📖 Manual Teórico - Rosca Trapezoidal (DIN 103):**  
+            Es el perfil estándar para transmisión de gran potencia y elevación.  
+            * **Características:** Ángulo de flanco $\beta = 30^\circ$.  
+            * **Efecto dinámico:** Genera un 'efecto cuña' que aumenta el rozamiento efectivo ($\mu' = \mu / \cos(15^\circ)$) respecto a una rosca cuadrada.
+            """)
+
+        elif "rendimiento" in q and "tornillo" in q:
+            st.chat_message("assistant").markdown("""
+            **📖 Manual Teórico - Rendimiento en Tornillos ($\eta$):**  
+            Eficiencia para transformar el momento torsor de entrada en trabajo útil de elevación.  
+            * **Fórmula:** $\eta = \\frac{\\tan(\\alpha)}{\\tan(\\alpha + \\rho')}$  
+            * **Criterio:** A mayor paso (mayor $\alpha$), sube el rendimiento pero se pierde el autobloqueo.
+            """)
+
+        # 2. CONCEPTOS TEÓRICOS DE POLIPASTOS Y CABLES
+        elif "polipasto" in q or "aparejo" in q:
+            st.chat_message("assistant").markdown("""
+            **📖 Manual Teórico - Polipastos:**  
+            Combinación de poleas fijas y móviles recorridas por un cable o cadena.  
+            * **Función:** Obtener **ventaja mecánica**, reduciendo el tiro útil requerido a costa de aumentar el recorrido del cable.  
+            * **Tipos principales:** *Factorial* y *Potencial*.
+            """)
+
+        elif "cable" in q or "iso 4309" in q or "fem" in q or "descarte" in q:
+            st.chat_message("assistant").markdown("""
+            **📖 Manual Teórico - Cables de Acero:**  
+            Elementos flexibles formados por cordones trenzados alrededor de un alma.  
+            * **Cálculo de Seguridad:** Se dimensionan calculando la fuerza de rotura mínima ($F_0$) con el coeficiente $Z_p$ según norma FEM/ISO.  
+            * **Criterio D/d:** La relación diámetro polea / diámetro cable ($D/d$) evita la fatiga por flexión.
+            """)
+
+        # 3. DUDAS SOBRE LA GUÍA DE PROMPTS Y USO DE IA
+        elif "prompt" in q or "gemini" in q or "chatgpt" in q or "claude" in q:
+            st.chat_message("assistant").markdown("""
+            **🤖 Guía de Uso de IA en la Cátedra:**  
+            Las plantillas de **'📚 Guía de Prompts de IA'** se copian y pegan en modelos externos (**ChatGPT, Claude o Gemini**) para auditar memorias de cálculo manuales.
+            """)
+
+        # 4. RESPUESTA POR DEFECTO
+        else:
+            st.chat_message("assistant").markdown(f"""
+            **🤖 JTP Virtual:**  
+            Ingresaste: *"{user_query}"*  
+            
+            No encontré una definición directa en el manual rápido. 
+            * En **Tornillos**, podés consultar por *autobloqueo*, *rosca trapezoidal* o *rendimiento*.
+            * En **Polipastos**, probá consultando por *aparejos*, *ventaja mecánica* o *cables*.
+            * Para buscar componentes comerciales, utilizá la pestaña **🔍 Buscador de Catálogos (IA)**.
+            """)
+

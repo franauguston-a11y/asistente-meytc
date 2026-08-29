@@ -15,6 +15,21 @@ st.title("⚙️ Plataforma de Cálculo, Simulación y Catálogos Comerciales (M
 st.caption("Proyecto de Beca de Investigación — Máquinas de Elevación y Transporte (UTN FRRe)")
 st.markdown("---")
 
+# ==============================================================================
+# ESTADO GLOBAL DE LA SESIÓN (st.session_state)
+# ==============================================================================
+if "cable_seleccionado" not in st.session_state:
+    st.session_state.cable_seleccionado = {
+        "guardado": False,
+        "diametro_dc": 10.0,       # mm
+        "s_ramal": 2500.0,         # kgf
+        "grupo_detectado": "III",
+        "ct_min": 7.0,
+        "cp_min": 8.0,
+        "cpc_min": 5.0,
+        "carga_total_p": 10000.0   # kgf
+    }
+
 # Navegación lateral
 modulo = st.sidebar.radio(
     "Navegación de Módulos:",
@@ -140,7 +155,7 @@ elif modulo == "🔍 Módulo 2: Buscador de Catálogos (IA)":
     st.dataframe(pd.DataFrame(data_cables), use_container_width=True)
 
 # ==============================================================================
-# MÓDULO 3: SELECCIÓN DE CABLES DE ACERO (NORMA DIN 655)
+# MÓDULO 3: SELECCIÓN DE CABLES DE ACERO (NORMA DIN 655) Y PREDIMENSIONADO
 # ==============================================================================
 elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
     st.header("🏗️ Selección y Dimensionado de Cables de Acero (Norma DIN 655)")
@@ -211,128 +226,265 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
         {"dc": 44, "s": 49, "r": 24.0, "a": 6.0}
     ]
 
-    col1, col2 = st.columns(2)
+    # --- NAVEGACIÓN INTERNA POR PESTAÑAS (SOLAPAS) EN EL MÓDULO 3 ---
+    tab_cable_m3, tab_tambor_m3, tab_polea_m3 = st.tabs([
+        "🪢 1. Selección del Cable",
+        "🥁 2. Dimensionamiento de Tambor",
+        "🔘 3. Dimensionamiento de Poleas"
+    ])
 
-    with col1:
-        st.subheader("1. Solicitación y Clasificación")
-        p_kgf = st.number_input("Carga total P (kgf):", min_value=100.0, value=10000.0, step=500.0)
-        num_ramales = st.number_input("Número de Ramales:", min_value=1, value=4, step=1)
-        s_ram = p_kgf / num_ramales
+    # --------------------------------------------------------------------------
+    # SOLAPA 1: SELECCIÓN DEL CABLE
+    # --------------------------------------------------------------------------
+    with tab_cable_m3:
+        col1, col2 = st.columns(2)
 
-        st.metric("Solicitación por Ramal (Sram):", f"{s_ram:,.1f} kgf")
+        with col1:
+            st.subheader("1. Solicitación y Clasificación")
+            p_kgf = st.number_input("Carga total P (kgf):", min_value=100.0, value=10000.0, step=500.0)
+            num_ramales = st.number_input("Número de Ramales:", min_value=1, value=4, step=1)
+            s_ram = p_kgf / num_ramales
 
-        frecuencia = st.selectbox(
-            "Frecuencia de los movimientos:",
-            ["Movimiento de precisión", "Movimiento poco frecuente", "Movimiento frecuente"]
+            st.metric("Solicitación por Ramal (Sram):", f"{s_ram:,.1f} kgf")
+
+            frecuencia = st.selectbox(
+                "Frecuencia de los movimientos:",
+                ["Movimiento de precisión", "Movimiento poco frecuente", "Movimiento frecuente"]
+            )
+            
+            # Filtro dinámico de importancia según frecuencia
+            opciones_importancia = []
+            if frecuencia == "Movimiento de precisión":
+                opciones_importancia = ["Sin precisar"]
+            elif frecuencia == "Movimiento poco frecuente":
+                opciones_importancia = ["Raramente a plena carga", "Plena carga"]
+            else:
+                opciones_importancia = ["Raramente a plena carga", "Plena carga", "Todas las cargas en la industria siderúrgica"]
+
+            importancia = st.selectbox("Importancia de la carga:", opciones_importancia)
+
+            grupo_detectado = tabla5.get((frecuencia, importancia), "III")
+            st.success(f"📌 **Grupo de Mecanismo Obtenido:** Grupo **{grupo_detectado}** (Tabla N° 5)")
+
+            p_group = tabla7[grupo_detectado]
+            kc_min, kc_max = p_group["kc"]
+            ct_min, ct_max = p_group["ct"]
+            cp_min, cp_max = p_group["cp"]
+            cpc_min, cpc_max = p_group["cpc"]
+
+            st.markdown(f"""
+            * **Rango Coef. Cable $k_c$:** `{kc_min}` – `{kc_max}`
+            * **Rango Coef. Tambor $c_t$:** `{ct_min}` – `{ct_max}`
+            * **Rango Coef. Polea $c_p$:** `{cp_min}` – `{cp_max}`
+            * **Rango Coef. Polea Comp. $c_{{pc}}$:** `{cpc_min}` – `{cpc_max}`
+            """)
+
+        with col2:
+            st.subheader("2. Dimensionado del Cable")
+            kc_adoptado = st.number_input("Adopto Coeficiente $k_c$:", min_value=0.1, max_value=1.0, value=kc_min, step=0.01)
+            
+            diam_teorico = kc_adoptado * math.sqrt(s_ram)
+            st.info(f"📐 **Diámetro Teórico Calculado:** $d_{{calc}} = {kc_adoptado} \\cdot \\sqrt{{{s_ram:.0f}}} = {diam_teorico:.2f} \\text{{ mm}}$")
+
+            dc_adoptado = st.number_input("Adopto Diámetro Comercial $D_c$ (mm):", min_value=1.0, value=float(math.ceil(diam_teorico)), step=1.0)
+
+            st.markdown("#### Verificación de Carga de Rotura y Seguridad")
+            
+            col_m, col_r = st.columns(2)
+            with col_m:
+                construccion = st.selectbox("Construcción del Cable:", ["6x19", "6x37"])
+            with col_r:
+                resistencia_mat = st.selectbox("Tensión del Alambre (kgf/mm²):", [130, 160, 180])
+
+            # Buscar carga de rotura más cercana o exacta
+            cables_disponibles = tabla3_din655[construccion]
+            d_mas_cercano = min(cables_disponibles.keys(), key=lambda x: abs(x - dc_adoptado))
+            f0_rotura = cables_disponibles[d_mas_cercano][resistencia_mat]
+            coef_seguridad_real = f0_rotura / s_ram
+
+            mnu_min, mnu_max = p_group["mnu_130_160"]
+            if resistencia_mat == 180:
+                mnu_min *= 1.125
+                mnu_max *= 1.125
+
+            st.markdown(f"""
+            * **Carga de Rotura Nominal ($F_0$):** **{f0_rotura:,.0f} kgf** *(Tabla N° 3 para d={d_mas_cercano}mm)*
+            * **Coeficiente de Seguridad Real ($\mu$):** **{coef_seguridad_real:.2f}**
+            * **Coeficiente Exigido:** Mínimo **{mnu_min:.2f}**
+            """)
+
+            if coef_seguridad_real >= mnu_min:
+                st.success("✅ **El cable ADOPTADO CUMPLE con el coeficiente de seguridad requerido.**")
+            else:
+                st.error("❌ **VERIFICACIÓN FALLIDA:** El coeficiente de seguridad es menor al exigido. Aumentá el diámetro del cable.")
+
+            # BOTÓN DE GUARDADO EN SESSION_STATE
+            if st.button("💾 Confirmar Selección de Cable para la App", type="primary"):
+                st.session_state.cable_seleccionado = {
+                    "guardado": True,
+                    "diametro_dc": dc_adoptado,
+                    "s_ramal": s_ram,
+                    "grupo_detectado": grupo_detectado,
+                    "ct_min": ct_min,
+                    "cp_min": cp_min,
+                    "cpc_min": cpc_min,
+                    "carga_total_p": p_kgf
+                }
+                st.success("✅ Datos transferidos automáticamente a las solapas de Tambor y Poleas.")
+
+    # Recuperación de datos del estado de la sesión
+    c_data = st.session_state.cable_seleccionado
+
+    # --------------------------------------------------------------------------
+    # SOLAPA 2: DIMENSIONAMIENTO DE TAMBOR
+    # --------------------------------------------------------------------------
+    with tab_tambor_m3:
+        st.subheader("2. Dimensionamiento de Tambor de Arrollamiento")
+
+        # BUENA PRÁCTICA 1: Información Read-Only del cable heredado
+        st.info(
+            f"📌 **Cable Heredado:** $D_c = \\mathbf{{{c_data['diametro_dc']:.1f}\\text{{ mm}}}}$ | "
+            f"Solicitación $S_{{ram}} = \\mathbf{{{c_data['s_ramal']:,.1f}\\text{{ kgf}}}}$ | "
+            f"Grupo: **{c_data['grupo_detectado']}** ($c_{{t,min}} = {c_data['ct_min']}$)"
         )
+
+        dt_teorico = c_data["ct_min"] * math.sqrt(c_data["s_ramal"])
+
+        col_t1, col_t2 = st.columns(2)
+
+        with col_t1:
+            st.markdown("#### Selección de Parámetros y Verificación")
+            
+            ct_adoptado = st.number_input(
+                "Adopto Coeficiente de Tambor ($c_t$):", 
+                min_value=1.0, 
+                value=float(c_data["ct_min"]), 
+                step=1.0
+            )
+            
+            st.write(f"- **Diámetro teóricamente necesario ($D_{{t,calc}}$):** `{dt_teorico:.1f} mm`")
+
+            # BUENA PRÁCTICA 3: Modificación con Default inteligente
+            dt_adoptado = st.number_input(
+                "Adopto Diámetro Primitivo del Tambor $D_t$ (mm):",
+                min_value=10.0,
+                value=float(round(dt_teorico, -1)),
+                step=10.0
+            )
+
+            # Alerta dinámica sobre fatiga y norma
+            if dt_adoptado < dt_teorico:
+                st.error(
+                    f"⚠️ **ADVERTENCIA TÉCNICA:** El diámetro elegido ({dt_adoptado} mm) es menor al teórico "
+                    f"calculado ({dt_teorico:.1f} mm). Esto provocará excesiva fatiga por flexión en el cable."
+                )
+            else:
+                st.success("✅ El diámetro seleccionado cumple con el valor mínimo requerido por la norma.")
+
+        with col_t2:
+            st.markdown("#### Parámetros Operativos y Geometría")
+            
+            # BUENA PRÁCTICA 2: Entradas adicionales con Defaults inteligentes
+            altura_h = st.number_input("Altura de elevación $h$ (m):", min_value=1.0, value=6.0, step=0.5)
+            separacion_sep = st.number_input("Separación central entre ranuras $s_{ep}$ (mm):", min_value=0.0, value=250.0, step=10.0)
+            espiras_seg = st.number_input("Espiras adicionales de seguridad:", min_value=1, value=3, step=1)
+
+            # Geometría Tabla 13 según el diámetro de cable
+            geo = min(tabla13, key=lambda x: abs(x["dc"] - c_data["diametro_dc"]))
+            s_paso, r_ranura, a_juego = geo["s"], geo["r"], geo["a"]
+
+            # Cálculo de espiras y dimensiones
+            cant_espiras = (((c_data["carga_total_p"] / 2) * altura_h * 1000) / (dt_adoptado * math.pi)) + 2 * espiras_seg if dt_adoptado > 0 else 0
+            cant_espiras_adop = math.ceil(cant_espiras)
+
+            lt_calc = 2 * cant_espiras_adop * s_paso + separacion_sep
+            det_calc = dt_adoptado - (2 * a_juego)
+
+            st.markdown("---")
+            st.markdown(f"""
+            * **Paso de ranurado ($s$):** `{s_paso} mm` | **Radio ranura ($r$):** `{r_ranura} mm` | **Juego ($a$):** `{a_juego} mm`
+            * **Espiras calculadas:** `{cant_espiras:.1f}` $\\rightarrow$ **Adopto:** `{cant_espiras_adop}` espiras
+            * **Longitud Mínima del Tambor ($L_t$):** **{lt_calc:.1f} mm**
+            * **Diámetro Exterior del Tambor ($D_{{et}}$):** **{det_calc:.1f} mm**
+            """)
+
+    # --------------------------------------------------------------------------
+    # SOLAPA 3: DIMENSIONAMIENTO DE POLEAS
+    # --------------------------------------------------------------------------
+    with tab_polea_m3:
+        st.subheader("3. Dimensionamiento de Poleas (Reenvío y Compensadora)")
+
+        # BUENA PRÁCTICA 1: Información Read-Only del cable heredado
+        st.info(
+            f"📌 **Cable Heredado:** $D_c = \\mathbf{{{c_data['diametro_dc']:.1f}\\text{{ mm}}}}$ | "
+            f"Solicitación $S_{{ram}} = \\mathbf{{{c_data['s_ramal']:,.1f}\\text{{ kgf}}}}$ | "
+            f"Grupo: **{c_data['grupo_detectado']}**"
+        )
+
+        dp_teorico = c_data["cp_min"] * math.sqrt(c_data["s_ramal"])
+        dpc_teorico = c_data["cpc_min"] * math.sqrt(c_data["s_ramal"])
+
+        col_p1, col_p2 = st.columns(2)
+
+        with col_p1:
+            st.markdown("#### Polea de Reenvío (Principal)")
+            cp_adoptado = st.number_input(
+                "Adopto Coeficiente $c_p$:", 
+                min_value=1.0, 
+                value=float(c_data["cp_min"]), 
+                step=1.0
+            )
+            st.write(f"- **Diámetro Mínimo Requerido ($D_{{p,calc}}$):** `{dp_teorico:.1f} mm`")
+
+            dp_adoptado = st.number_input(
+                "Adopto Diámetro Polea $D_p$ (mm):",
+                min_value=10.0,
+                value=float(round(dp_teorico, -1)),
+                step=10.0
+            )
+
+            if dp_adoptado < dp_teorico:
+                st.warning(f"⚠️ El diámetro ({dp_adoptado} mm) es menor al recomendado ({dp_teorico:.1f} mm). Reducirá la vida útil del cable.")
+            else:
+                st.success("✅ Diámetro de polea verificado.")
+
+        with col_p2:
+            st.markdown("#### Polea Compensadora")
+            cpc_adoptado = st.number_input(
+                "Adopto Coeficiente $c_{{pc}}$:", 
+                min_value=1.0, 
+                value=float(c_data["cpc_min"]), 
+                step=1.0
+            )
+            st.write(f"- **Diámetro Mínimo Requerido ($D_{{pc,calc}}$):** `{dpc_teorico:.1f} mm`")
+
+            dpc_adoptado = st.number_input(
+                "Adopto Diámetro Polea Comp. $D_{{pc}}$ (mm):",
+                min_value=10.0,
+                value=float(round(dpc_teorico, -1)),
+                step=10.0
+            )
+
+            if dpc_adoptado < dpc_teorico:
+                st.warning(f"⚠️ El diámetro compensador ({dpc_adoptado} mm) es inferior al mínimo normativo ({dpc_teorico:.1f} mm).")
+            else:
+                st.success("✅ Diámetro compensador verificado.")
+
+        st.divider()
+        st.markdown("#### Geometría de Garganta y Carga Resultante sobre el Eje")
         
-        # Filtro dinámico de importancia según frecuencia
-        opciones_importancia = []
-        if frecuencia == "Movimiento de precisión":
-            opciones_importancia = ["Sin precisar"]
-        elif frecuencia == "Movimiento poco frecuente":
-            opciones_importancia = ["Raramente a plena carga", "Plena carga"]
-        else:
-            opciones_importancia = ["Raramente a plena carga", "Plena carga", "Todas las cargas en la industria siderúrgica"]
+        col_pr1, col_pr2 = st.columns(2)
+        with col_pr1:
+            # Entrada de ángulo de abrazo para esfuerzo radial en eje
+            angulo_abrazo = st.slider(
+                "Ángulo de abrazo del cable en la polea de reenvío (α) [°]",
+                min_value=30, max_value=180, value=180, step=5
+            )
+            fuerza_resultante_eje = 2.0 * c_data["s_ramal"] * math.sin(math.radians(angulo_abrazo / 2.0))
+            st.metric(label="Carga Resultante Radial en el Eje/Rodamiento:", value=f"{fuerza_resultante_eje:,.1f} kgf")
 
-        importancia = st.selectbox("Importancia de la carga:", opciones_importancia)
-
-        grupo_detectado = tabla5.get((frecuencia, importancia), "III")
-        st.success(f"📌 **Grupo de Mecanismo Obtenido:** Grupo **{grupo_detectado}** (Tabla N° 5)")
-
-        p_group = tabla7[grupo_detectado]
-        kc_min, kc_max = p_group["kc"]
-        ct_min, ct_max = p_group["ct"]
-        cp_min, cp_max = p_group["cp"]
-        cpc_min, cpc_max = p_group["cpc"]
-
-        st.markdown(f"""
-        * **Rango Coef. Cable $k_c$:** `{kc_min}` – `{kc_max}`
-        * **Rango Coef. Tambor $c_t$:** `{ct_min}` – `{ct_max}`
-        * **Rango Coef. Polea $c_p$:** `{cp_min}` – `{cp_max}`
-        * **Rango Coef. Polea Comp. $c_{{pc}}$:** `{cpc_min}` – `{cpc_max}`
-        """)
-
-    with col2:
-        st.subheader("2. Dimensionado del Cable")
-        kc_adoptado = st.number_input("Adopto Coeficiente $k_c$:", min_value=0.1, max_value=1.0, value=kc_min, step=0.01)
-        
-        diam_teorico = kc_adoptado * math.sqrt(s_ram)
-        st.info(f"📐 **Diámetro Teórico Calculado:** $d_{{calc}} = {kc_adoptado} \\cdot \\sqrt{{{s_ram:.0f}}} = {diam_teorico:.2f} \\text{{ mm}}$")
-
-        dc_adoptado = st.number_input("Adopto Diámetro Comercial $D_c$ (mm):", min_value=1.0, value=float(math.ceil(diam_teorico)), step=1.0)
-
-        st.markdown("#### Verificación de Carga de Rotura y Seguridad")
-        
-        col_m, col_r = st.columns(2)
-        with col_m:
-            construccion = st.selectbox("Construcción del Cable:", ["6x19", "6x37"])
-        with col_r:
-            resistencia_mat = st.selectbox("Tensión del Alambre (kgf/mm²):", [130, 160, 180])
-
-        # Buscar carga de rotura más cercana o exacta
-        cables_disponibles = tabla3_din655[construccion]
-        d_mas_cercano = min(cables_disponibles.keys(), key=lambda x: abs(x - dc_adoptado))
-        f0_rotura = cables_disponibles[d_mas_cercano][resistencia_mat]
-        coef_seguridad_real = f0_rotura / s_ram
-
-        mnu_min, mnu_max = p_group["mnu_130_160"]
-        if resistencia_mat == 180:
-            mnu_min *= 1.125
-            mnu_max *= 1.125
-
-        st.markdown(f"""
-        * **Carga de Rotura Nominal ($F_0$):** **{f0_rotura:,.0f} kgf** *(Tabla N° 3 para d={d_mas_cercano}mm)*
-        * **Coeficiente de Seguridad Real ($\mu$):** **{coef_seguridad_real:.2f}**
-        * **Coeficiente Exigido:** Mínimo **{mnu_min:.2f}**
-        """)
-
-        if coef_seguridad_real >= mnu_min:
-            st.success("✅ **El cable ADOPTADO CUMPLE con el coeficiente de seguridad requerido.**")
-        else:
-            st.error("❌ **VERIFICACIÓN FALLIDA:** El coeficiente de seguridad es menor al exigido. Aumentá el diámetro del cable.")
-
-    st.markdown("---")
-    st.subheader("3. Dimensionado de Tambor y Poleas (Tabla N° 7 y 13)")
-
-    col_pol, col_tam = st.columns(2)
-
-    with col_pol:
-        st.markdown("#### Poleas de Reenvío y Compensadora")
-        cp_adoptado = st.number_input("Adopto $c_p$ (Polea Reenvío):", min_value=1.0, value=float(cp_min), step=1.0)
-        dp_teorico = cp_adoptado * math.sqrt(s_ram)
-        dp_adoptado = st.number_input("Adopto Diámetro Polea $D_p$ (mm):", min_value=10.0, value=float(round(dp_teorico, -1)), step=10.0)
-
-        cpc_adoptado = st.number_input("Adopto $c_{pc}$ (Polea Compensadora):", min_value=1.0, value=float(cpc_min), step=1.0)
-        dpc_teorico = cpc_adoptado * math.sqrt(s_ram)
-        dpc_adoptado = st.number_input("Adopto Diámetro Polea Comp. $D_{pc}$ (mm):", min_value=10.0, value=float(round(dpc_teorico, -1)), step=10.0)
-
-    with col_tam:
-        st.markdown("#### Tambor de Arrollamiento")
-        ct_adoptado = st.number_input("Adopto $c_t$ (Tambor):", min_value=1.0, value=float(ct_min), step=1.0)
-        dt_teorico = ct_adoptado * math.sqrt(s_ram)
-        dt_adoptado = st.number_input("Adopto Diámetro Tambor $D_t$ (mm):", min_value=10.0, value=float(round(dt_teorico, -1)), step=10.0)
-
-        st.markdown("**Parámetros de Elevación y Geometría de Ranurado**")
-        altura_h = st.number_input("Altura de elevación h (m):", min_value=1.0, value=6.0, step=0.5)
-        separacion_sep = st.number_input("Separación entre ranuras sep (mm):", min_value=0.0, value=250.0, step=10.0)
-        espiras_seg = st.number_input("Espiras adicionales de seguridad:", min_value=1, value=3, step=1)
-
-        # Geometría Tabla 13
-        geo = min(tabla13, key=lambda x: abs(x["dc"] - dc_adoptado))
-        s_paso, r_ranura, a_juego = geo["s"], geo["r"], geo["a"]
-
-        # Cantidad de espiras
-        cant_espiras = (((p_kgf / 2) * altura_h * 1000) / (dt_adoptado * math.pi)) + 2 * espiras_seg if dt_adoptado > 0 else 0
-        cant_espiras_adop = math.ceil(cant_espiras)
-
-        # Longitud tambor
-        lt_calc = 2 * cant_espiras_adop * s_paso + separacion_sep
-        det_calc = dt_adoptado - (2 * a_juego)
-
-        st.markdown(f"""
-        * **Paso ($s$):** `{s_paso} mm` | **Radio ranura ($r$):** `{r_ranura} mm` | **Juego ($a$):** `{a_juego} mm`
-        * **Espiras calculadas:** `{cant_espiras:.1f}` $\\rightarrow$ **Adopto:** `{cant_espiras_adop}`
-        * **Longitud Mínima del Tambor ($L_t$):** **{lt_calc:.1f} mm**
-        * **Diámetro Exterior Tambor ($D_{{et}}$):** **{det_calc:.1f} mm**
-        """)
+        with col_pr2:
+            geo_p = min(tabla13, key=lambda x: abs(x["dc"] - c_data["diametro_dc"]))
+            st.write(f"- **Radio de la garganta ($r$):** `{geo_p['r']} mm`")
+            st.write(f"- **Paso normativo recomendado ($s$):** `{geo_p['s']} mm`")
+            st.caption("Esta carga sobre el eje puede utilizarse de forma directa como Carga Dinámica P en el Módulo 1 de Rodamientos.")

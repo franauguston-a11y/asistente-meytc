@@ -317,6 +317,30 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
     }
 
+    # FUNCIÓN AUXILIAR GENERAL (DEFINIDA AFUERA PARA EVITAR ERRORES)
+    def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
+        h, b, tw, tf = p_data["h"], p_data["b"], p_data["tw"], p_data["tf"]
+        ey = p_data.get("ey", 0.0)
+
+        if p_type == "IPN":
+            verts = [
+                (-b/2, h/2), (b/2, h/2), (b/2, h/2 - tf), (tw/2, h/2 - tf),
+                (tw/2, -h/2 + tf), (b/2, -h/2 + tf), (b/2, -h/2), (-b/2, -h/2),
+                (-b/2, -h/2 + tf), (-tw/2, -h/2 + tf), (-tw/2, h/2 - tf), (-b/2, h/2 - tf)
+            ]
+        else:
+            x_back = -ey
+            x_web_in = -ey + tw
+            x_tip = b - ey
+            verts = [
+                (x_back, h/2), (x_tip, h/2), (x_tip, h/2 - tf), (x_web_in, h/2 - tf),
+                (x_web_in, -h/2 + tf), (x_tip, -h/2 + tf), (x_tip, -h/2), (x_back, -h/2)
+            ]
+
+        rad = math.radians(rot_deg)
+        cos_r, sin_r = math.cos(rad), math.sin(rad)
+        return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
+
     col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
     with col_pantalla_izq:
@@ -338,8 +362,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
 
             if agregar_p2:
                 tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0, key="tipo_p2")
-                
-                # CORRECCIÓN CLAVE AQUÍ: Se usa el catálogo correspondiente según el tipo seleccionado
                 lista_cat_p2 = cat_upn if tipo_p2 == "UPN" else cat_ipn
                 prof2_name = st.selectbox("Designación Perfil 2:", list(lista_cat_p2.keys()), index=0, key="prof2_name")
                 p2 = lista_cat_p2[prof2_name]
@@ -363,29 +385,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             )
 
             st.caption("ℹ️ **Nota técnica:** Tanto el gráfico como los cálculos de inercias (Teorema de Steiner) consideran el acoplamiento físico real **al ras** de los perfiles (simulando la posición de soldadura), en lugar de superponer centros de gravedad ideales.")
-
-            def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
-                h, b, tw, tf = p_data["h"], p_data["b"], p_data["tw"], p_data["tf"]
-                ey = p_data.get("ey", 0.0)
-
-                if p_type == "IPN":
-                    verts = [
-                        (-b/2, h/2), (b/2, h/2), (b/2, h/2 - tf), (tw/2, h/2 - tf),
-                        (tw/2, -h/2 + tf), (b/2, -h/2 + tf), (b/2, -h/2), (-b/2, -h/2),
-                        (-b/2, -h/2 + tf), (-tw/2, -h/2 + tf), (-tw/2, h/2 - tf), (-b/2, h/2 - tf)
-                    ]
-                else:
-                    x_back = -ey
-                    x_web_in = -ey + tw
-                    x_tip = b - ey
-                    verts = [
-                        (x_back, h/2), (x_tip, h/2), (x_tip, h/2 - tf), (x_web_in, h/2 - tf),
-                        (x_web_in, -h/2 + tf), (x_tip, -h/2 + tf), (x_tip, -h/2), (x_back, -h/2)
-                    ]
-
-                rad = math.radians(rot_deg)
-                cos_r, sin_r = math.cos(rad), math.sin(rad)
-                return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
             h1, b1 = p1["h"], p1["b"]
             rad_p2 = math.radians(rot_p2)

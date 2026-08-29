@@ -1,4 +1,5 @@
 streamlit
-pandas
-matplotlib
 ezdxf
+matplotlib
+numpy
+shapely

@@ -66,6 +66,33 @@ if modulo == "🛞 Módulo 1: Simulación Rodamientos (ISO 281)":
         st.markdown(f"$$L_{{10h}} = \\frac{{10^6}}{{60 \\cdot {rpm}}} \\cdot {l10_mill:.2f} = {l10_horas:,.0f} \\text{{ horas}}$$")
         st.markdown(f"* **Régimen considerado:** {horas_dia:.0f} hs/día × {dias_ano} días/año = {horas_anuales:,.0f} hs/año.")
 
+    st.markdown("---")
+    st.subheader("🤖 Recomendación Automática de Catálogo por IA")
+
+    # Diagnóstico automático y selección de componentes
+    if l10_horas < 10000:
+        st.error(f"⚠️ **Atención:** La vida útil simulada ({l10_horas:,.0f} hs / {anos_util:.1f} años) es inferior al estándar recomendado para maquinaria industrial pesada (mínimo 10,000 - 20,000 hs).")
+        st.markdown("👉 **Sugerencia:** Se recomienda seleccionar un rodamiento con mayor capacidad dinámicamente equivalente $C > " + f"{cap_c * 1.3:.1f}\\text{{ kN}}$ o rediseñar para reducir la carga aplicada.")
+    elif l10_horas <= 50000:
+        st.success(f"✅ **Apto para servicio estándar:** La vida útil simulada ({l10_horas:,.0f} hs / {anos_util:.1f} años) cumple con los requerimientos generales de operación de la cátedra.")
+    else:
+        st.info(f"💡 **Dimensionado sobredimensionado/robusto:** La vida útil ({l10_horas:,.0f} hs / {anos_util:.1f} años) es óptima para servicio continuo ininterrumpido (24/7).")
+
+    st.markdown("#### Rodamientos de Catálogo Sugeridos:")
+    
+    if "Bolas" in tipo_elem:
+        st.markdown(f"""
+        * **SKF 6210-2RS1** | $C = 35.1\\text{{ kN}}$ | $d = 50\\text{{ mm}}$ | *Rodamiento rígido de bolas estándar.*
+        * **SKF 6310** | $C = 61.8\\text{{ kN}}$ | $d = 50\\text{{ mm}}$ | *Opción reforzada para cargas medias.*
+        * **SKF 6410** | $C = 85.0\\text{{ kN}}$ | $d = 50\\text{{ mm}}$ | *Capacidad máxima en serie de bolas.*
+        """)
+    else:
+        st.markdown(f"""
+        * **SKF 22210 EK** | $C = 104.0\\text{{ kN}}$ | $d = 50\\text{{ mm}}$ | *Rodillos oscilantes (alta capacidad radial/axial).*
+        * **SKF NU 210 ECP** | $C = 56.0\\text{{ kN}}$ | $d = 50\\text{{ mm}}$ | *Rodillos cilíndricos para cargas puramente radiales.*
+        * **SKF 30210** | $C = 78.0\\text{{ kN}}$ | $d = 50\\text{{ mm}}$ | *Rodillos cónicos para cargas combinadas pesadas.*
+        """)
+
 # ==============================================================================
 # MÓDULO 2: BUSCADOR DE CATÁLOGOS CON IA (Multiparámetro Extendido)
 # ==============================================================================

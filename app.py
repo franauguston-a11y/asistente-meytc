@@ -350,7 +350,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         if agregar_p2:
             st.markdown("#### 🔗 Posición de Soldadura / Contacto")
             
-            # SLIDER DIRECTO (ACTUALIZA AL MOVER)
             rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15, key="rot_p2_slider")
             
             ubicacion_contacto = st.selectbox(
@@ -363,6 +362,9 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
                 ],
                 key="ubicacion_contacto_select"
             )
+
+            # Nota técnica reubicada debajo de los controles de posición de P2
+            st.caption("ℹ️ **Nota técnica:** Tanto el gráfico como los cálculos de inercias (Teorema de Steiner) consideran el acoplamiento físico real **al ras** de los perfiles (simulando la posición de soldadura), en lugar de superponer centros de gravedad ideales.")
 
             # FUNCIÓN AUXILIAR DE POLÍGONOS PARA CÁLCULO DE LÍMITES EXACTOS
             def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
@@ -431,7 +433,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
     iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
 
-    # COLUMNA DERECHA: GRÁFICO Y ACLARACIÓN TÉCNICA
+    # COLUMNA DERECHA: GRÁFICO 
     with col_pantalla_der:
         st.markdown("### 🖼️ Sección Compuesta Real (Soldada)")
 
@@ -463,9 +465,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         ax.legend(loc='upper right', fontsize=8)
 
         st.pyplot(fig)
-        
-        # Aclaración técnica debajo del gráfico
-        st.caption("ℹ️ **Nota técnica:** Tanto el gráfico como los cálculos de inercias (Teorema de Steiner) consideran el acoplamiento físico real **al ras** de los perfiles (simulando la posición de soldadura), en lugar de superponer centros de gravedad ideales.")
 
     # RESULTADOS MÓDULOS RESISTENTES
     d_sup = max(all_y) - yg_comp
@@ -494,4 +493,3 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     with c_r4:
         st.metric("Wy Derecho:", f"{wy_der:,.1f} cm³")
         st.metric("Wy Izquierdo:", f"{wy_izq:,.1f} cm³")
-

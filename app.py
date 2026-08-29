@@ -276,11 +276,11 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (POSICIONAMIENTO Y ROTACIÓN LIBRE DE 0° A 360°)
+# MÓDULO 3: VIGAS COMBINADAS (POSICIONAMIENTO CON ST.FORM RÁPIDO Y FLUIDO)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
-    st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo de Perfiles")
-    st.markdown("Posicioná y rotá (0° a 360°) de manera continua el perfil secundario para evaluar la sección compuesta.")
+    st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
+    st.markdown("Ajustá las coordenadas y el ángulo en el panel y presioná **Actualizar Gráfico** para un recálculo fluido.")
 
     cat_ipn = {
         "IPN 160": {"h": 16.0, "b": 7.4, "tw": 0.63, "tf": 0.95, "area": 22.8, "ix": 935.0, "iy": 54.7, "ey": 0.0},
@@ -314,27 +314,27 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         agregar_p2 = st.checkbox("¿Agregar segundo perfil?", value=True)
 
         if agregar_p2:
-            tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0)
+            tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1)
             prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=1)
             p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
 
-            st.markdown("#### 🎯 Posicionamiento y Rotación Continuos")
-            
-            rot_p2 = st.slider("Rotación Perfil 2 (Ángulo 0° a 360°):", min_value=0, max_value=360, value=90, step=5)
-            x2_c = st.slider("Posición Centro X2 (cm):", min_value=-25.0, max_value=25.0, value=0.0, step=0.5)
-            y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-10.0, max_value=40.0, value=float(p1["h"] + 2.0), step=0.5)
+            with st.form("form_posicionamiento"):
+                st.markdown("#### 🎯 Control de Posición y Rotación")
+                rot_p2 = st.slider("Rotación Perfil 2 (Ángulo 0° a 360°):", min_value=0, max_value=360, value=90, step=5)
+                x2_c = st.slider("Posición Centro X2 (cm):", min_value=-20.0, max_value=20.0, value=0.0, step=0.5)
+                y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-10.0, max_value=40.0, value=float(p1["h"] + 2.0), step=0.5)
+                
+                btn_actualizar = st.form_submit_button("🔄 Actualizar Gráfico y Cálculos", type="primary")
 
             a2 = p2["area"]
-
             rad_p2 = math.radians(rot_p2)
             cos_a2 = math.cos(rad_p2) ** 2
             sin_a2 = math.sin(rad_p2) ** 2
             
-            # Inercia respecto a los ejes globales rotados
             ix2_local = p2["ix"] * cos_a2 + p2["iy"] * sin_a2
             iy2_local = p2["ix"] * sin_a2 + p2["iy"] * cos_a2
         else:
-            a2, x2_c, y2_c, ix2_local, iy2_local = 0.0, 0.0, 0.0, 0.0, 0.0
+            a2, x2_c, y2_c, ix2_local, iy2_local, rot_p2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0
 
     area_tot = a1 + a2
     xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
@@ -368,7 +368,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
     with col_vis:
-        st.subheader("🖼️ Sección Compuesta Real (Visualización Dinámica)")
+        st.subheader("🖼️ Sección Compuesta Real")
 
         fig, ax = plt.subplots(figsize=(6, 6))
 

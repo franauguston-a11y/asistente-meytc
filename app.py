@@ -276,7 +276,7 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (CATÁLOGO COMPLETO, ACOPLAMIENTO AL RAS Y STEINER)
+# MÓDULO 3: VIGAS COMBINADAS (CATÁLOGO COMPLETO, ACOPLAMIENTO AL RAS Y TIEMPO REAL)
 # Fuente de catálogos: Manuales técnicos de perfiles estructurales de acero 
 # laminado en caliente (Series IPN e UPN normalizadas).
 # ==============================================================================
@@ -342,29 +342,27 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             if agregar_p2:
                 tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1, key="tipo_p2")
                 prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=6, key="prof2_name")
-                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
+                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_upn[prof2_name]
             else:
                 p2 = None
 
-        # CONTROLES DE POSICIÓN AUTOMÁTICA Y SOLDADURA (AL RAS EXACTO)
+        # CONTROLES DE POSICIÓN EN TIEMPO REAL (SIN FORMULARIO)
         if agregar_p2:
-            with st.form("form_contacto_automatico"):
-                st.markdown("#### 🔗 Posición de Soldadura / Contacto")
-                
-                # SLIDER DE ROTACIÓN CADA 15 GRADOS
-                rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15)
-                
-                ubicacion_contacto = st.selectbox(
-                    "Ubicación del Perfil 2 respecto al Base:",
-                    [
-                        "Sobre el ala superior (Al ras)",
-                        "Debajo del ala inferior (Al ras)",
-                        "Lateral derecho (Contra el ala)",
-                        "Lateral izquierdo (Contra el ala)"
-                    ]
-                )
-                
-                btn_actualizar = st.form_submit_button("🔄 Actualizar Acople", type="primary", use_container_width=True)
+            st.markdown("#### 🔗 Posición de Soldadura / Contacto")
+            
+            # SLIDER DIRECTO (ACTUALIZA AL MOVER)
+            rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15, key="rot_p2_slider")
+            
+            ubicacion_contacto = st.selectbox(
+                "Ubicación del Perfil 2 respecto al Base:",
+                [
+                    "Sobre el ala superior (Al ras)",
+                    "Debajo del ala inferior (Al ras)",
+                    "Lateral derecho (Contra el ala)",
+                    "Lateral izquierdo (Contra el ala)"
+                ],
+                key="ubicacion_contacto_select"
+            )
 
             # FUNCIÓN AUXILIAR DE POLÍGONOS PARA CÁLCULO DE LÍMITES EXACTOS
             def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
@@ -497,4 +495,3 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         st.metric("Wy Derecho:", f"{wy_der:,.1f} cm³")
         st.metric("Wy Izquierdo:", f"{wy_izq:,.1f} cm³")
 
- 

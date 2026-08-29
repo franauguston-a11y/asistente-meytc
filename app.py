@@ -285,6 +285,7 @@ elif "Módulo 3" in modulo:
     try:
         import ezdxf
         import matplotlib.pyplot as plt
+        import numpy as np
         DXF_DISPONIBLE = True
     except ImportError:
         DXF_DISPONIBLE = False
@@ -309,7 +310,49 @@ elif "Módulo 3" in modulo:
     # Selector de origen de la geometría
     tipo_entrada = st.radio("Seleccione el origen de la geometría:", ["Catálogos Comerciales (IPN/UPN)", "Cargar Archivo DXF Personalizado"])
 
-    if tipo_entrada == "Cargar Archivo DXF Personalizado":
+    if tipo_entrada == "Catálogos Comerciales (IPN/UPN)":
+        st.subheader("Selección de Perfil Comercial")
+        perfil_seleccionado = st.selectbox("Elija un perfil IPN:", list(cat_ipn.keys()))
+        
+        datos = cat_ipn[perfil_seleccionado]
+        h = datos["h"] * 10  # Convertir a mm
+        b = datos["b"] * 10
+        tw = datos["tw"] * 10
+        tf = datos["tf"] * 10
+        area = datos["area"] * 100  # mm²
+        ix = datos["ix"] * 10000     # mm⁴
+        
+        wx = ix / (h / 2.0)
+        
+        st.markdown("### Propiedades del Perfil")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Altura ($h$)", f"{h:.1f} mm")
+        c2.metric("Ancho de Ala ($b$)", f"{b:.1f} mm")
+        c3.metric("Área ($A$)", f"{area:.1f} mm²")
+        
+        c4, c5 = st.columns(2)
+        c4.metric("Inercia ($I_x$)", f"{ix:.2e} mm⁴")
+        c5.metric("Módulo Resistente ($W_x$)", f"{wx:.2f} mm³")
+        
+        st.markdown("### Gráfico del Perfil Comercial")
+        fig, ax = plt.subplots(figsize=(5, 5))
+        
+        # Dibujo esquemático de la sección doble T (IPN)
+        # Ala superior
+        ax.fill([-b/2, b/2, b/2, -b/2], [h/2 - tf, h/2 - tf, h/2, h/2], color='skyblue', edgecolor='black')
+        # Ala inferior
+        ax.fill([-b/2, b/2, b/2, -b/2], [-h/2, -h/2, -h/2 + tf, -h/2 + tf], color='skyblue', edgecolor='black')
+        # Alma
+        ax.fill([-tw/2, tw/2, tw/2, -tw/2], [-h/2 + tf, -h/2 + tf, h/2 - tf, h/2 - tf], color='skyblue', edgecolor='black')
+        
+        ax.plot(0, 0, 'rx', markersize=10, label='Centroide ($G$)')
+        ax.set_aspect('equal')
+        ax.set_xlabel('X (mm)')
+        ax.set_ylabel('Y (mm)')
+        ax.legend()
+        st.pyplot(fig)
+
+    elif tipo_entrada == "Cargar Archivo DXF Personalizado":
         st.subheader("Importación de Geometría DXF")
         archivo_dxf = st.file_uploader("Sube tu archivo DXF en milímetros", type=["dxf"])
         
@@ -435,5 +478,3 @@ elif "Módulo 3" in modulo:
                 st.error(f"Error al procesar el archivo DXF: {e}")
         elif archivo_dxf is not None and not DXF_DISPONIBLE:
             st.error("La librería 'ezdxf' no está instalada en el entorno.")
-    else:
-        st.info("Seleccione una opción en el menú superior o cargue su archivo DXF personalizado para comenzar.")

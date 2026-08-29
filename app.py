@@ -342,7 +342,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             if agregar_p2:
                 tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1, key="tipo_p2")
                 prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=6, key="prof2_name")
-                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_upn[prof2_name]
+                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
             else:
                 p2 = None
 
@@ -433,7 +433,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
     iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
 
-    # COLUMNA DERECHA: GRÁFICO 
+    # COLUMNA DERECHA: GRÁFICO Y ACLARACIÓN TÉCNICA
     with col_pantalla_der:
         st.markdown("### 🖼️ Sección Compuesta Real (Soldada)")
 
@@ -465,6 +465,9 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         ax.legend(loc='upper right', fontsize=8)
 
         st.pyplot(fig)
+        
+        # Aclaración técnica debajo del gráfico
+        st.caption("ℹ️ **Nota técnica:** Tanto el gráfico como los cálculos de inercias (Teorema de Steiner) consideran el acoplamiento físico real **al ras** de los perfiles (simulando la posición de soldadura), en lugar de superponer centros de gravedad ideales.")
 
     # RESULTADOS MÓDULOS RESISTENTES
     d_sup = max(all_y) - yg_comp
@@ -493,3 +496,5 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     with c_r4:
         st.metric("Wy Derecho:", f"{wy_der:,.1f} cm³")
         st.metric("Wy Izquierdo:", f"{wy_izq:,.1f} cm³")
+
+ 

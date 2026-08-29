@@ -274,19 +274,17 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
 
         st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
-
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (CATÁLOGO COMPLETO Y SLIDER CADA 15°)
+# MÓDULO 3: VIGAS COMBINADAS (ACOPLAMIENTO AUTOMÁTICO Y SOLDADURA)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
 
-    # CATÁLOGO IPN COMPLETO (Desde IPN 80 hasta IPN 550/600)
     cat_ipn = {
         "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
         "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
         "IPN 120": {"h": 12.0, "b": 5.8,  "tw": 0.51, "tf": 0.77, "area": 14.2,  "ix": 328.0,  "iy": 21.5,  "ey": 0.0},
-        "IPN 140": {"h": 14.0, "b": 6.6, "tw": 0.57, "tf": 0.86, "area": 18.3,  "ix": 573.0,  "iy": 35.2,  "ey": 0.0},
+        "IPN 140": {"h": 14.0, "b": 6.6,  "tw": 0.57, "tf": 0.86, "area": 18.3,  "ix": 573.0,  "iy": 35.2,  "ey": 0.0},
         "IPN 160": {"h": 16.0, "b": 7.4,  "tw": 0.63, "tf": 0.95, "area": 22.8,  "ix": 935.0,  "iy": 54.7,  "ey": 0.0},
         "IPN 180": {"h": 18.0, "b": 8.2,  "tw": 0.69, "tf": 1.04, "area": 27.9,  "ix": 1450.0, "iy": 81.3,  "ey": 0.0},
         "IPN 200": {"h": 20.0, "b": 9.0,  "tw": 0.75, "tf": 1.13, "area": 33.4,  "ix": 2140.0, "iy": 117.0,  "ey": 0.0},
@@ -300,7 +298,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "IPN 500": {"h": 50.0, "b": 18.5, "tw": 1.80, "tf": 2.70, "area": 179.0, "ix": 66700.0, "iy": 2140.0, "ey": 0.0}
     }
 
-    # CATÁLOGO UPN COMPLETO (Desde UPN 80 hasta UPN 400)
     cat_upn = {
         "UPN 80":  {"h": 8.0,  "b": 4.5,  "tw": 0.50, "tf": 0.80, "area": 11.0,  "ix": 106.0,  "iy": 19.4,  "ey": 1.35},
         "UPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.55, "tf": 0.85, "area": 13.5,  "ix": 206.0,  "iy": 29.3,  "ey": 1.45},
@@ -309,19 +306,18 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 160": {"h": 16.0, "b": 6.5,  "tw": 0.75, "tf": 1.05, "area": 24.0,  "ix": 925.0,  "iy": 85.3,  "ey": 1.84},
         "UPN 180": {"h": 18.0, "b": 7.0,  "tw": 0.80, "tf": 1.10, "area": 28.0,  "ix": 1350.0, "iy": 114.0, "ey": 1.93},
         "UPN 200": {"h": 20.0, "b": 7.5,  "tw": 0.85, "tf": 1.15, "area": 32.2,  "ix": 1910.0, "iy": 148.0, "ey": 2.01},
-        "UPN 220": {"h": 22.0, "b": 8.0,  "tw": 0.90, "tf": 1.20, "area": 37.4,  "ix": 2690.0, "iy": 197.0,  "ey": 2.13},
+        "UPN 220": {"h": 22.0, "b": 8.0,  "tw": 0.90, "tf": 1.20, "area": 37.4,  "ix": 2690.0, "iy": 197.0, "ey": 2.13},
         "UPN 240": {"h": 24.0, "b": 8.5, "tw": 0.95, "tf": 1.30, "area": 42.3,  "ix": 3600.0, "iy": 248.0, "ey": 2.23},
-        "UPN 260": {"h": 26.0, "b": 9.0,  "tw": 1.00, "tf": 1.40, "area": 48.3,  "ix": 4820.0, "iy": 317.0,  "ey": 2.35},
-        "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8,  "ix": 8030.0, "iy": 495.0,  "ey": 2.70},
+        "UPN 260": {"h": 26.0, "b": 9.0,  "tw": 1.00, "tf": 1.40, "area": 48.3,  "ix": 4820.0, "iy": 317.0, "ey": 2.35},
+        "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8,  "ix": 8030.0, "iy": 495.0, "ey": 2.70},
         "UPN 350": {"h": 35.0, "b": 10.5, "tw": 1.15, "tf": 1.60, "area": 77.3,  "ix": 12840.0, "iy": 606.0, "ey": 2.82},
         "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
     }
 
-    # DIVISIÓN PRINCIPAL: CONTROLES A LA IZQUIERDA (1.4), GRÁFICO A LA DERECHA (1.0)
+    # DIVISIÓN PRINCIPAL: CONTROLES A LA IZQUIERDA, GRÁFICO A LA DERECHA
     col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
     with col_pantalla_izq:
-        # 1. SELECCIÓN DE PERFILES (PARALELOS)
         col_p1, col_p2 = st.columns(2)
 
         with col_p1:
@@ -341,28 +337,54 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             if agregar_p2:
                 tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1, key="tipo_p2")
                 prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=6, key="prof2_name")
-                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
+                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_upn[prof2_name]
             else:
                 p2 = None
 
-        # 2. CONTROLES DE POSICIONAMIENTO DENTRO DEL FORMULARIO
+        # CONTROLES DE POSICIÓN AUTOMÁTICA Y SOLDADURA (SIN SLIDERS LIBRES)
         if agregar_p2:
-            with st.form("form_posicionamiento_compacto"):
-                st.markdown("#### 🎯 Posicionamiento y Rotación de P2")
+            with st.form("form_contacto_automatico"):
+                st.markdown("#### 🔗 Posición de Soldadura / Contacto")
                 
-                # SLIDER DE ROTACIÓN CADA 15 GRADOS
                 rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15)
                 
-                col_sx, col_sy = st.columns(2)
-                with col_sx:
-                    x2_c = st.slider("Posición Centro X2 (cm):", min_value=-25.0, max_value=25.0, value=0.0, step=0.5)
-                with col_sy:
-                    y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-15.0, max_value=50.0, value=float(p1["h"] + 2.0), step=0.5)
+                ubicacion_contacto = st.selectbox(
+                    "Ubicación del Perfil 2 respecto al Base:",
+                    [
+                        "Sobre el ala superior (Al ras)",
+                        "Debajo del ala inferior (Al ras)",
+                        "Lateral derecho (Contra el ala)",
+                        "Lateral izquierdo (Contra el ala)"
+                    ]
+                )
                 
-                btn_actualizar = st.form_submit_button("🔄 Actualizar Gráfico", type="primary", use_container_width=True)
+                btn_actualizar = st.form_submit_button("🔄 Actualizar Acople", type="primary", use_container_width=True)
+
+            # CÁLCULO AUTOMÁTICO DE CENTROS (X2, Y2) PARA QUE QUEDEN AL RAS
+            h1, b1 = p1["h"], p1["b"]
+            h2, b2 = p2["h"], p2["b"]
+            
+            # Estimamos dimensiones según rotación de P2 para el contacto perfecto
+            # Si rota 90° o 270°, la altura horizontal del P2 pasa a ser su ancho b2 y viceversa.
+            rad_p2 = math.radians(rot_p2)
+            cos_r, sin_r = abs(math.cos(rad_p2)), abs(math.sin(rad_p2))
+            h2_efectiva = h2 * cos_r + b2 * sin_r
+            b2_efectiva = b2 * cos_r + h2 * sin_r
+
+            if ubicacion_contacto == "Sobre el ala superior (Al ras)":
+                x2_c = 0.0
+                y2_c = h1 + (h2_efectiva / 2.0)
+            elif ubicacion_contacto == "Debajo del ala inferior (Al ras)":
+                x2_c = 0.0
+                y2_c = -(h2_efectiva / 2.0)
+            elif ubicacion_contacto == "Lateral derecho (Contra el ala)":
+                x2_c = (b1 / 2.0) + (b2_efectiva / 2.0)
+                y2_c = h1 / 2.0
+            else:  # Lateral izquierdo
+                x2_c = -((b1 / 2.0) + (b2_efectiva / 2.0))
+                y2_c = h1 / 2.0
 
             a2 = p2["area"]
-            rad_p2 = math.radians(rot_p2)
             cos_a2 = math.cos(rad_p2) ** 2
             sin_a2 = math.sin(rad_p2) ** 2
             
@@ -403,9 +425,9 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         
         return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
-    # COLUMNA DERECHA: GRÁFICO ALINEADO CON TODO EL PANEL IZQUIERDO
+    # COLUMNA DERECHA: GRÁFICO 
     with col_pantalla_der:
-        st.markdown("### 🖼️ Sección Compuesta Real")
+        st.markdown("### 🖼️ Sección Compuesta Real (Soldada)")
 
         fig, ax = plt.subplots(figsize=(5, 5))
 
@@ -436,7 +458,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
 
         st.pyplot(fig)
 
-    # RESULTADOS MÓDULOS RESISTENTES (EN LA PARTE INFERIOR)
+    # RESULTADOS MÓDULOS RESISTENTES
     d_sup = max(all_y) - yg_comp
     d_inf = yg_comp - min(all_y)
     d_der = max(all_x) - xg_comp

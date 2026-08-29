@@ -30,137 +30,19 @@ if "cable_seleccionado" not in st.session_state:
         "carga_total_p": 10000.0   # kgf
     }
 
-# Navegación lateral
+# Navegación lateral reordenada
 modulo = st.sidebar.radio(
     "Navegación de Módulos:",
     [
-        "🛞 Módulo 1: Simulación Rodamientos (ISO 281)",
-        "🔍 Módulo 2: Buscador de Catálogos (IA)",
-        "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)"
+        "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)",
+        "🛞 Módulo 2: Simulación Rodamientos (ISO 281)"
     ]
 )
 
 # ==============================================================================
-# MÓDULO 1: SIMULACIÓN DE RODAMIENTOS
+# MÓDULO 1: SELECCIÓN DE CABLES DE ACERO (NORMA DIN 655) Y PREDIMENSIONADO
 # ==============================================================================
-if modulo == "🛞 Módulo 1: Simulación Rodamientos (ISO 281)":
-    st.header("🛞 Simulación de Vida Útil de Rodamientos ($L_{10h}$)")
-    st.markdown("Simulación de vida útil nominal según ISO 281 en función de cargas dinámicas y velocidad de operación.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Parámetros de Entrada")
-        carga_p = st.number_input("Carga Dinámica Equivalente P (kN):", min_value=1.0, value=25.0, step=2.5)
-        cap_c = st.number_input("Capacidad de Carga Dinámica C (kN):", min_value=1.0, value=104.0, step=5.0)
-        rpm = st.slider("Velocidad de Giro (rpm):", min_value=10, max_value=1000, value=150, step=10)
-        tipo_elem = st.radio("Contacto / Elemento Rodante:", ["Bolas (p=3)", "Rodillos (p=10/3)"])
-        
-        st.markdown("**Régimen de Operación (Para cálculo en años)**")
-        col_hs, col_dias = st.columns(2)
-        with col_hs:
-            horas_dia = st.number_input("Horas de uso por día (h/día):", min_value=1.0, max_value=24.0, value=8.0, step=1.0)
-        with col_dias:
-            dias_ano = st.number_input("Días de uso por año (días/año):", min_value=1, max_value=365, value=250, step=5)
-
-    with col2:
-        st.subheader("Resultado de la Simulación")
-        p_exp = 3.0 if "Bolas" in tipo_elem else (10.0 / 3.0)
-        l10_mill = (cap_c / carga_p) ** p_exp
-        l10_horas = (10**6 / (60 * rpm)) * l10_mill
-        
-        # Cálculo de vida útil en años
-        horas_anuales = horas_dia * dias_ano
-        anos_util = l10_horas / horas_anuales if horas_anuales > 0 else 0
-
-        # Visualización de métricas
-        m1, m2 = st.columns(2)
-        with m1:
-            st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
-        with m2:
-            st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
-
-        st.markdown(f"$$L_{{10}} = \\left( \\frac{{{cap_c}}}{{{carga_p}}} \\right)^{{{p_exp:.2f}}} = {l10_mill:.2f} \\text{{ millones de revoluciones}}$$")
-        st.markdown(f"$$L_{{10h}} = \\frac{{10^6}}{{60 \\cdot {rpm}}} \\cdot {l10_mill:.2f} = {l10_horas:,.0f} \\text{{ horas}}$$")
-        st.markdown(f"* **Régimen considerado:** {horas_dia:.0f} hs/día × {dias_ano} días/año = {horas_anuales:,.0f} hs/año.")
-
-    st.caption("📖 *Fuente de referencia: Norma Internacional ISO 281 (Cálculo de capacidad de carga dinámica y vida nominal de rodamientos).*")
-
-# ==============================================================================
-# MÓDULO 2: BUSCADOR DE CATÁLOGOS CON IA (Multiparámetro Extendido)
-# ==============================================================================
-elif modulo == "🔍 Módulo 2: Buscador de Catálogos (IA)":
-    st.header("🔍 Buscador Inteligente de Catálogos Comerciales")
-    st.markdown("Asistente de selección de componentes técnicos con motor de análisis paramétrico de la cátedra.")
-
-    col1, col2 = st.columns([1, 2])
-
-    with col1:
-        st.subheader("Biblioteca de Catálogos")
-        cat_seleccionado = st.selectbox(
-            "Seleccioná el Catálogo a consultar:",
-            [
-                "Todos los catálogos (Búsqueda global)",
-                "Cables de Acero (IPH / DIN 3060)",
-                "Rodamientos de Poleas (SKF / FAG)",
-                "Poleas y Gargantas (Norma ISO 4301)",
-                "Reductores de Velocidad (SEW-Eurodrive)"
-            ]
-        )
-        st.info("💡 *El motor evalúa en simultáneo: dimensiones (mm), hileras, tipo de alma, construcciones, tratamientos térmicos y entorno operativo.*")
-
-    with col2:
-        st.subheader("Consulta de Componente")
-        query_cat = st.text_input(
-            "¿Qué componente estás buscando?", 
-            placeholder="Ej: rodamiento SKF 50mm doble hilera para alta temperatura..."
-        )
-
-        if query_cat:
-            st.markdown("### 📋 Recomendación Técnica de IA")
-            q_low = query_cat.lower()
-
-            has_50 = any(w in q_low for w in ["50mm", "50 mm", "50", "d 50", "d=50"])
-            has_14 = any(w in q_low for w in ["14mm", "14 mm", "14", "d 14", "d=14"])
-            has_16 = any(w in q_low for w in ["16mm", "16 mm", "16"])
-            has_400 = any(w in q_low for w in ["400mm", "400 mm", "400", "dp 400"])
-
-            is_doble = any(w in q_low for w in ["doble hilera", "dos hileras", "2 hileras", "doble"])
-            has_temp = any(w in q_low for w in ["temperatura", "temperaturas", "calor", "termico", "térmico"])
-            has_anti = any(w in q_low for w in ["anti-giratorio", "antigiratorio", "no giratorio", "antigiro"])
-
-            if "rodamiento" in q_low or "skf" in q_low:
-                if has_50 and is_doble and has_temp:
-                    st.success("✅ **Coincidencia Exacta: Rodamiento SKF Doble Hilera para Alta Temperatura**")
-                    st.markdown("""
-                    * **Modelo recomendado:** **SKF 22210 E/VA228** (Rodillos oscilantes).
-                    * **Cotado:** $d = 50\\text{ mm}$, $D = 90\\text{ mm}$, $B = 23\\text{ mm}$.
-                    * **Térmica:** Juego C4 con **grafito sintético** (hasta **+350 °C**).
-                    """)
-                elif has_50:
-                    st.success("✅ **Coincidencia Dimensional: SKF Rodamiento Estándar d=50mm**")
-                    st.markdown("* **Modelo:** **SKF 6210-2RS1** ($d=50\\text{ mm}$, $D=90\\text{ mm}$).")
-            elif "cable" in q_low or "iph" in q_low:
-                if (has_14 or "14" in q_low) and has_anti:
-                    st.success("✅ **Coincidencia Exacta: Cable Anti-giratorio Galvanizado**")
-                    st.markdown("* **Modelo:** **IPH 35x7 HD + AA** ($d=14\\text{ mm}$, $F_0=152\\text{ kN}$).")
-            else:
-                st.info("🔎 **Análisis paramétrico de la consulta:** Procesando atributos ingresados...")
-
-    st.markdown("---")
-    st.subheader("📚 Vista Previa de Datos de Catálogo")
-    data_cables = {
-        "Modelo": ["IPH 6x36 WS+AA", "IPH 35x7 Anti-giratorio", "SKF 6210-2RS1"],
-        "Categoría": ["Cable", "Cable", "Rodamiento"],
-        "Atributo Principal": ["d = 14mm / F0 = 134kN", "d = 14mm / F0 = 152kN", "d = 50mm / D = 90mm"],
-        "Norma / Fabricante": ["DIN 3060 / IPH", "DIN 3069 / IPH", "ISO 281 / SKF"]
-    }
-    st.dataframe(pd.DataFrame(data_cables), use_container_width=True)
-    st.caption("📖 *Fuente de referencia: Catálogos oficiales IPH S.A. (Cables de Acero) y SKF Group (Rodamientos).*")
-
-# ==============================================================================
-# MÓDULO 3: SELECCIÓN DE CABLES DE ACERO (NORMA DIN 655) Y PREDIMENSIONADO
-# ==============================================================================
-elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
+if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
     st.header("🏗️ Selección y Dimensionado de Cables de Acero (Norma DIN 655)")
     st.markdown("Cálculo de solicitación en ramales, diámetro de cable, coeficientes de seguridad y dimensionado de tambor y poleas.")
 
@@ -229,7 +111,7 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
         {"dc": 44, "s": 49, "r": 24.0, "a": 6.0}
     ]
 
-    # --- NAVEGACIÓN INTERNA POR PESTAÑAS EN EL MÓDULO 3 ---
+    # --- NAVEGACIÓN INTERNA POR PESTAÑAS ---
     tab_cable_m3, tab_tambor_m3, tab_polea_m3 = st.tabs([
         "🪢 1. Selección del Cable",
         "🥁 2. Dimensionamiento de Tambor",
@@ -501,4 +383,48 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
 
         st.markdown("---")
         st.caption("📖 *Referencias de la solapa: Norma DIN 655 y Criterios de Selección SKF/ISO para Poleas de Carga.*")
+
+# ==============================================================================
+# MÓDULO 2: SIMULACIÓN DE RODAMIENTOS
+# ==============================================================================
+elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
+    st.header("🛞 Simulación de Vida Útil de Rodamientos ($L_{10h}$)")
+    st.markdown("Simulación de vida útil nominal según ISO 281 en función de cargas dinámicas y velocidad de operación.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Parámetros de Entrada")
+        carga_p = st.number_input("Carga Dinámica Equivalente P (kN):", min_value=1.0, value=25.0, step=2.5)
+        cap_c = st.number_input("Capacidad de Carga Dinámica C (kN):", min_value=1.0, value=104.0, step=5.0)
+        rpm = st.slider("Velocidad de Giro (rpm):", min_value=10, max_value=1000, value=150, step=10)
+        tipo_elem = st.radio("Contacto / Elemento Rodante:", ["Bolas (p=3)", "Rodillos (p=10/3)"])
         
+        st.markdown("**Régimen de Operación (Para cálculo en años)**")
+        col_hs, col_dias = st.columns(2)
+        with col_hs:
+            horas_dia = st.number_input("Horas de uso por día (h/día):", min_value=1.0, max_value=24.0, value=8.0, step=1.0)
+        with col_dias:
+            dias_ano = st.number_input("Días de uso por año (días/año):", min_value=1, max_value=365, value=250, step=5)
+
+    with col2:
+        st.subheader("Resultado de la Simulación")
+        p_exp = 3.0 if "Bolas" in tipo_elem else (10.0 / 3.0)
+        l10_mill = (cap_c / carga_p) ** p_exp
+        l10_horas = (10**6 / (60 * rpm)) * l10_mill
+        
+        # Cálculo de vida útil en años
+        horas_anuales = horas_dia * dias_ano
+        anos_util = l10_horas / horas_anuales if horas_anuales > 0 else 0
+
+        # Visualización de métricas
+        m1, m2 = st.columns(2)
+        with m1:
+            st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
+        with m2:
+            st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
+
+        st.markdown(f"$$L_{{10}} = \\left( \\frac{{{cap_c}}}{{{carga_p}}} \\right)^{{{p_exp:.2f}}} = {l10_mill:.2f} \\text{{ millones de revoluciones}}$$")
+        st.markdown(f"$$L_{{10h}} = \\frac{{10^6}}{{60 \\cdot {rpm}}} \\cdot {l10_mill:.2f} = {l10_horas:,.0f} \\text{{ horas}}$$")
+        st.markdown(f"* **Régimen considerado:** {horas_dia:.0f} hs/día × {dias_ano} días/año = {horas_anuales:,.0f} hs/año.")
+
+    st.caption("📖 *Fuente de referencia: Norma Internacional ISO 281 (Cálculo de capacidad de carga dinámica y vida nominal de rodamientos).*")

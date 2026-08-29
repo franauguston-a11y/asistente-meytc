@@ -274,12 +274,16 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
 
         st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
+
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (ACOPLAMIENTO AUTOMÁTICO Y SOLDADURA)
+# MÓDULO 3: VIGAS COMBINADAS (CATÁLOGO COMPLETO, ACOPLAMIENTO AL RAS Y STEINER)
+# Fuente de catálogos: Manuales técnicos de perfiles estructurales de acero 
+# laminado en caliente (Series IPN e UPN normalizadas).
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
 
+    # CATÁLOGO IPN COMPLETO (Norma técnica de perfiles doble T de ala inclinada)
     cat_ipn = {
         "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
         "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
@@ -298,6 +302,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "IPN 500": {"h": 50.0, "b": 18.5, "tw": 1.80, "tf": 2.70, "area": 179.0, "ix": 66700.0, "iy": 2140.0, "ey": 0.0}
     }
 
+    # CATÁLOGO UPN COMPLETO (Norma técnica de perfiles en U de ala inclinada)
     cat_upn = {
         "UPN 80":  {"h": 8.0,  "b": 4.5,  "tw": 0.50, "tf": 0.80, "area": 11.0,  "ix": 106.0,  "iy": 19.4,  "ey": 1.35},
         "UPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.55, "tf": 0.85, "area": 13.5,  "ix": 206.0,  "iy": 29.3,  "ey": 1.45},
@@ -314,7 +319,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
     }
 
-    # DIVISIÓN PRINCIPAL: CONTROLES A LA IZQUIERDA, GRÁFICO A LA DERECHA
+    # DIVISIÓN PRINCIPAL: CONTROLES A LA IZQUIERDA (1.4), GRÁFICO A LA DERECHA (1.0)
     col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
     with col_pantalla_izq:
@@ -341,11 +346,12 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             else:
                 p2 = None
 
-        # CONTROLES DE POSICIÓN AUTOMÁTICA Y SOLDADURA (SIN SLIDERS LIBRES)
+        # CONTROLES DE POSICIÓN AUTOMÁTICA Y SOLDADURA (AL RAS EXACTO)
         if agregar_p2:
             with st.form("form_contacto_automatico"):
                 st.markdown("#### 🔗 Posición de Soldadura / Contacto")
                 
+                # SLIDER DE ROTACIÓN CADA 15 GRADOS
                 rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15)
                 
                 ubicacion_contacto = st.selectbox(
@@ -360,70 +366,72 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
                 
                 btn_actualizar = st.form_submit_button("🔄 Actualizar Acople", type="primary", use_container_width=True)
 
-            # CÁLCULO AUTOMÁTICO DE CENTROS (X2, Y2) PARA QUE QUEDEN AL RAS
-            h1, b1 = p1["h"], p1["b"]
-            h2, b2 = p2["h"], p2["b"]
-            
-            # Estimamos dimensiones según rotación de P2 para el contacto perfecto
-            # Si rota 90° o 270°, la altura horizontal del P2 pasa a ser su ancho b2 y viceversa.
-            rad_p2 = math.radians(rot_p2)
-            cos_r, sin_r = abs(math.cos(rad_p2)), abs(math.sin(rad_p2))
-            h2_efectiva = h2 * cos_r + b2 * sin_r
-            b2_efectiva = b2 * cos_r + h2 * sin_r
+            # FUNCIÓN AUXILIAR DE POLÍGONOS PARA CÁLCULO DE LÍMITES EXACTOS
+            def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
+                h, b, tw, tf = p_data["h"], p_data["b"], p_data["tw"], p_data["tf"]
+                ey = p_data.get("ey", 0.0)
 
+                if p_type == "IPN":
+                    verts = [
+                        (-b/2, h/2), (b/2, h/2), (b/2, h/2 - tf), (tw/2, h/2 - tf),
+                        (tw/2, -h/2 + tf), (b/2, -h/2 + tf), (b/2, -h/2), (-b/2, -h/2),
+                        (-b/2, -h/2 + tf), (-tw/2, -h/2 + tf), (-tw/2, h/2 - tf), (-b/2, h/2 - tf)
+                    ]
+                else:
+                    x_back = -ey
+                    x_web_in = -ey + tw
+                    x_tip = b - ey
+                    verts = [
+                        (x_back, h/2), (x_tip, h/2), (x_tip, h/2 - tf), (x_web_in, h/2 - tf),
+                        (x_web_in, -h/2 + tf), (x_tip, -h/2 + tf), (x_tip, -h/2), (x_back, -h/2)
+                    ]
+
+                rad = math.radians(rot_deg)
+                cos_r, sin_r = math.cos(rad), math.sin(rad)
+                
+                return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
+
+            # DIMENSIONES Y EXTREMOS REALES DEL POLÍGONO ROTADO DE P2 (CONTORNO EXACTO)
+            h1, b1 = p1["h"], p1["b"]
+            rad_p2 = math.radians(rot_p2)
+            cos_r, sin_r = math.cos(rad_p2), math.sin(rad_p2)
+            
+            verts_p2_local = obtener_poligono_perfil(tipo_p2, p2, 0.0, 0.0, rot_p2)
+            min_y_p2 = min(v[1] for v in verts_p2_local)
+            max_y_p2 = max(v[1] for v in verts_p2_local)
+            min_x_p2 = min(v[0] for v in verts_p2_local)
+            max_x_p2 = max(v[0] for v in verts_p2_local)
+
+            # ACOPLAMIENTO EXACTO AL BORDE DE P1 (P1 va desde y=0 hasta y=h1)
             if ubicacion_contacto == "Sobre el ala superior (Al ras)":
                 x2_c = 0.0
-                y2_c = h1 + (h2_efectiva / 2.0)
+                y2_c = h1 - min_y_p2  # El borde inferior de P2 toca exactamente el borde superior de P1
             elif ubicacion_contacto == "Debajo del ala inferior (Al ras)":
                 x2_c = 0.0
-                y2_c = -(h2_efectiva / 2.0)
+                y2_c = -max_y_p2  # El borde superior de P2 toca exactamente y=0 de P1
             elif ubicacion_contacto == "Lateral derecho (Contra el ala)":
-                x2_c = (b1 / 2.0) + (b2_efectiva / 2.0)
-                y2_c = h1 / 2.0
+                x2_c = (b1 / 2.0) - min_x_p2
+                y2_c = (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
             else:  # Lateral izquierdo
-                x2_c = -((b1 / 2.0) + (b2_efectiva / 2.0))
-                y2_c = h1 / 2.0
+                x2_c = (-b1 / 2.0) - max_x_p2
+                y2_c = (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
 
             a2 = p2["area"]
-            cos_a2 = math.cos(rad_p2) ** 2
-            sin_a2 = math.sin(rad_p2) ** 2
+            cos_a2 = cos_r ** 2
+            sin_a2 = sin_r ** 2
             
             ix2_local = p2["ix"] * cos_a2 + p2["iy"] * sin_a2
             iy2_local = p2["ix"] * sin_a2 + p2["iy"] * cos_a2
         else:
             a2, x2_c, y2_c, ix2_local, iy2_local, rot_p2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0
 
-    # CÁLCULOS BARICENTRO E INERCIAS
+    # CÁLCULOS BARICENTRO E INERCIAS (Teorema de Steiner)
     area_tot = a1 + a2
     xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
     yg_comp = ((a1 * y1_c) + (a2 * y2_c)) / area_tot
 
     ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
     iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
-
-    def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
-        h, b, tw, tf = p_data["h"], p_data["b"], p_data["tw"], p_data["tf"]
-        ey = p_data.get("ey", 0.0)
-
-        if p_type == "IPN":
-            verts = [
-                (-b/2, h/2), (b/2, h/2), (b/2, h/2 - tf), (tw/2, h/2 - tf),
-                (tw/2, -h/2 + tf), (b/2, -h/2 + tf), (b/2, -h/2), (-b/2, -h/2),
-                (-b/2, -h/2 + tf), (-tw/2, -h/2 + tf), (-tw/2, h/2 - tf), (-b/2, h/2 - tf)
-            ]
-        else:
-            x_back = -ey
-            x_web_in = -ey + tw
-            x_tip = b - ey
-            verts = [
-                (x_back, h/2), (x_tip, h/2), (x_tip, h/2 - tf), (x_web_in, h/2 - tf),
-                (x_web_in, -h/2 + tf), (x_tip, -h/2 + tf), (x_tip, -h/2), (x_back, -h/2)
-            ]
-
-        rad = math.radians(rot_deg)
-        cos_r, sin_r = math.cos(rad), math.sin(rad)
-        
-        return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
     # COLUMNA DERECHA: GRÁFICO 
     with col_pantalla_der:

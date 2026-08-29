@@ -276,12 +276,19 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (CATÁLOGO COMPLETO, ACOPLAMIENTO AL RAS Y TIEMPO REAL)
+# MÓDULO 3: VIGAS COMBINADAS, CATÁLOGOS Y PERFILES PERSONALIZADOS (DXF / CSV)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
 
-    # CATÁLOGO IPN COMPLETO
+    # Intentamos importar ezdxf de forma segura para la lectura de archivos DXF
+    try:
+        import ezdxf
+        DXF_DISPONIBLE = True
+    except ImportError:
+        DXF_DISPONIBLE = False
+
+    # CATÁLOGOS COMERCIALES
     cat_ipn = {
         "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
         "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
@@ -300,7 +307,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "IPN 500": {"h": 50.0, "b": 18.5, "tw": 1.80, "tf": 2.70, "area": 179.0, "ix": 66700.0, "iy": 2140.0, "ey": 0.0}
     }
 
-    # CATÁLOGO UPN COMPLETO
     cat_upn = {
         "UPN 80":  {"h": 8.0,  "b": 4.5,  "tw": 0.50, "tf": 0.80, "area": 11.0,  "ix": 106.0,  "iy": 19.4,  "ey": 1.35},
         "UPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.55, "tf": 0.85, "area": 13.5,  "ix": 206.0,  "iy": 29.3,  "ey": 1.45},
@@ -317,7 +323,60 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
     }
 
-    # FUNCIÓN AUXILIAR GENERAL (DEFINIDA AFUERA PARA EVITAR ERRORES)
+    # FUNCIONES DE CÁLCULO GEOMÉTRICO POR POLÍGONO (Fórmulas de Green / Shoelace para Secciones Arbitrarias)
+    def calcular_propiedades_poligono(verts):
+        # verts es una lista de tuplas [(x1, y1), (x2, y2), ...] cerrada o abierta
+        n = len(verts)
+        if n < 3:
+            return None, 0, 0, 0, 0, 0
+
+        # Asegurar cierre
+        if verts[0] != verts[-1]:
+            verts = verts + [verts[0]]
+            n = len(verts)
+
+        area = 0.0
+        cx = 0.0
+        cy = 0.0
+        ix = 0.0
+        iy = 0.0
+        pxy = 0.0
+
+        for i in range(n - 1):
+            xi, yi = verts[i]
+            xi1, yi1 = verts[i+1]
+            cross = (xi * yi1 - xi1 * yi)
+            area += cross
+            cx += (xi + xi1) * cross
+            cy += (yi + yi1) * cross
+
+        area = area / 2.0
+        if abs(area) < 1e-6:
+            return None, 0, 0, 0, 0, 0
+
+        area = abs(area)
+        cx = cx / (6.0 * area)
+        cy = cy / (6.0 * area)
+
+        # Inercias baricéntricas
+        for i in range(n - 1):
+            xi, yi = verts[i]
+            xi1, yi1 = verts[i+1]
+            cross = (xi * yi1 - xi1 * yi)
+            
+            # trasladar al baricentro local
+            x_i, y_i = xi - cx, yi - cy
+            x_ip1, y_ip1 = xi1 - cx, yi1 - cy
+
+            ix += (y_i**2 + y_i*y_ip1 + y_ip1**2) * cross
+            iy += (x_i**2 + x_i*x_ip1 + x_ip1**2) * cross
+            pxy += (2*x_i*y_i + x_i*y_ip1 + x_ip1*y_i + 2*x_ip1*y_ip1) * cross
+
+        ix = abs(ix / 12.0)
+        iy = abs(iy / 12.0)
+        
+        return verts[:-1], area, cx, cy, ix, iy
+
     def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
         h, b, tw, tf = p_data["h"], p_data["b"], p_data["tw"], p_data["tf"]
         ey = p_data.get("ey", 0.0)
@@ -341,132 +400,218 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         cos_r, sin_r = math.cos(rad), math.sin(rad)
         return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
+    # SELECCIÓN DE FUENTE DE DATOS (Catálogo vs Archivo Personalizado)
+    modo_fuente = st.radio(
+        "Seleccione el origen de la sección principal (Perfil 1):",
+        ["Catálogo Comercial (IPN / UPN)", "📂 Perfil Personalizado (Subir Archivo DXF / CSV)"],
+        horizontal=True
+    )
+
     col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
-    with col_pantalla_izq:
-        col_p1, col_p2 = st.columns(2)
+    if modo_fuente == "📂 Perfil Personalizado (Subir Archivo DXF / CSV)":
+        with col_pantalla_izq:
+            st.markdown("### 1. Carga de Geometría CAD")
+            tipo_archivo = st.selectbox("Formato del archivo:", [".csv (Coordenadas X, Y)", ".dxf (AutoCAD Contorno Cerrado)"])
+            
+            archivo_subido = st.file_uploader("Suba el archivo del perfil diseñado:", type=["csv", "txt", "dxf"])
+            
+            verts_p1 = []
+            a1, ix1, iy1 = 0, 0, 0
+            x1_c, y1_c = 0, 0
+            
+            if archivo_subido is not None:
+                try:
+                    if ".csv" in tipo_archivo or ".txt" in tipo_archivo:
+                        df_coords = pd.read_csv(archivo_subido)
+                        if 'x' in df_coords.columns and 'y' in df_coords.columns:
+                            verts_p1 = list(zip(df_coords['x'], df_coords['y']))
+                        else:
+                            st.error("El archivo CSV debe contener las columnas 'x' e 'y'.")
+                    elif ".dxf" in tipo_archivo:
+                        if DXF_DISPONIBLE:
+                            doc = ezdxf.read(archivo_subido)
+                            msp = doc.modelspace()
+                            # Extraer polilíneas o líneas cerradas
+                            for entity in msp.query('LWPOLYLINE POLYLINE'):
+                                verts_p1 = [(v[0], v[1]) for v in entity.get_points('xy')]
+                                break # Tomamos el primer contorno detectado
+                            if not verts_p1:
+                                st.error("No se encontró una polilínea válida en el archivo DXF.")
+                        else:
+                            st.error("La librería 'ezdxf' no está instalada en el entorno.")
 
-        with col_p1:
-            st.markdown("### 1. Perfil Base (P1)")
-            tipo_p1 = st.selectbox("Tipo Perfil Base:", ["IPN", "UPN"], index=0, key="tipo_p1")
-            prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=4, key="prof1_name")
-            p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
+                    if len(verts_p1) >= 3:
+                        _, a1, x1_bar, y1_bar, ix1, iy1 = calcular_propiedades_poligono(verts_p1)
+                        # Centramos respecto al origen baricéntrico para operar de forma consistente
+                        verts_p1 = [(v[0] - x1_bar, v[1] - y1_bar) for v in verts_p1]
+                        x1_c, y1_c = 0.0, 0.0
+                        st.success(f"¡Archivo leído con éxito! Área detectada: {a1:.2f} cm²")
+                except Exception as e:
+                    st.error(f"Error al procesar el archivo: {e}")
 
-            x1_c, y1_c = 0.0, p1["h"] / 2.0
             rot_p1 = 0
-            ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
+            agregar_p2 = False # En modo personalizado puro operamos con la sección base subida
 
-        with col_p2:
-            st.markdown("### 2. Refuerzo (P2)")
-            agregar_p2 = st.checkbox("¿Agregar perfil 2?", value=True, key="agregar_p2")
+        with col_pantalla_der:
+            st.markdown("### 👁️ Visualizador de Control (CAD)")
+            fig, ax = plt.subplots(figsize=(5, 5))
+            if len(verts_p1) >= 3:
+                poly_custom = patches.Polygon(verts_p1, closed=True, color='darkorange', alpha=0.8, edgecolor='black', lw=1.5, label="Perfil Custom")
+                ax.add_patch(poly_custom)
+                ax.plot(0, 0, 'ro', markersize=6, label="Baricentro (0,0)")
+                
+                all_x = [v[0] for v in verts_p1]
+                all_y = [v[1] for v in verts_p1]
+                margin = max(max(all_x)-min(all_x), max(all_y)-min(all_y)) * 0.4 + 2
+                ax.set_xlim(-margin, margin)
+                ax.set_ylim(-margin, margin)
+            else:
+                ax.text(0, 0, "Esperando archivo válido...", ha='center', va='center', fontsize=11, color='gray')
+                ax.set_xlim(-10, 10)
+                ax.set_ylim(-10, 10)
+
+            ax.set_aspect('equal', adjustable='box')
+            ax.set_xlabel("X [cm]")
+            ax.set_ylabel("Y [cm]")
+            ax.grid(True, linestyle='--', alpha=0.5)
+            ax.legend(loc='upper right', fontsize=8)
+            st.pyplot(fig)
+
+        area_tot = a1
+        xg_comp, yg_comp = 0.0, 0.0
+        ix_tot, iy_tot = ix1, iy1
+        
+        if len(verts_p1) >= 3:
+            all_y = [v[1] for v in verts_p1]
+            all_x = [v[0] for v in verts_p1]
+            d_sup = max(all_y)
+            d_inf = abs(min(all_y))
+            d_der = max(all_x)
+            d_izq = abs(min(all_x))
+
+            wx_sup = ix_tot / d_sup if d_sup > 0 else 0
+            wx_inf = ix_tot / d_inf if d_inf > 0 else 0
+            wy_der = iy_tot / d_der if d_der > 0 else 0
+            wy_izq = iy_tot / d_izq if d_izq > 0 else 0
+        else:
+            wx_sup, wx_inf, wy_der, wy_izq = 0, 0, 0, 0
+
+    else:
+        # MODO CATÁLOGO COMERCIAL (Con Viga Combinada P1 + P2 opcional que ya tenías)
+        with col_pantalla_izq:
+            col_p1, col_p2 = st.columns(2)
+
+            with col_p1:
+                st.markdown("### 1. Perfil Base (P1)")
+                tipo_p1 = st.selectbox("Tipo Perfil Base:", ["IPN", "UPN"], index=0, key="tipo_p1")
+                prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=4, key="prof1_name")
+                p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
+
+                x1_c, y1_c = 0.0, p1["h"] / 2.0
+                rot_p1 = 0
+                ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
+
+            with col_p2:
+                st.markdown("### 2. Refuerzo (P2)")
+                agregar_p2 = st.checkbox("¿Agregar perfil 2?", value=True, key="agregar_p2")
+
+                if agregar_p2:
+                    tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0, key="tipo_p2")
+                    lista_cat_p2 = cat_upn if tipo_p2 == "UPN" else cat_ipn
+                    prof2_name = st.selectbox("Designación Perfil 2:", list(lista_cat_p2.keys()), index=0, key="prof2_name")
+                    p2 = lista_cat_p2[prof2_name]
+                else:
+                    p2 = None
 
             if agregar_p2:
-                tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0, key="tipo_p2")
-                lista_cat_p2 = cat_upn if tipo_p2 == "UPN" else cat_ipn
-                prof2_name = st.selectbox("Designación Perfil 2:", list(lista_cat_p2.keys()), index=0, key="prof2_name")
-                p2 = lista_cat_p2[prof2_name]
+                st.markdown("#### 🔗 Posición de Soldadura / Contacto")
+                rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15, key="rot_p2_slider")
+                ubicacion_contacto = st.selectbox(
+                    "Ubicación del Perfil 2 respecto al Base:",
+                    [
+                        "Sobre el ala superior (Al ras)",
+                        "Debajo del ala inferior (Al ras)",
+                        "Lateral derecho (Contra el ala)",
+                        "Lateral izquierdo (Contra el ala)"
+                    ],
+                    key="ubicacion_contacto_select"
+                )
+
+                h1, b1 = p1["h"], p1["b"]
+                rad_p2 = math.radians(rot_p2)
+                cos_r, sin_r = math.cos(rad_p2), math.sin(rad_p2)
+                
+                verts_p2_local = obtener_poligono_perfil(tipo_p2, p2, 0.0, 0.0, rot_p2)
+                min_y_p2 = min(v[1] for v in verts_p2_local)
+                max_y_p2 = max(v[1] for v in verts_p2_local)
+                min_x_p2 = min(v[0] for v in verts_p2_local)
+                max_x_p2 = max(v[0] for v in verts_p2_local)
+
+                if ubicacion_contacto == "Sobre el ala superior (Al ras)":
+                    x2_c, y2_c = 0.0, h1 - min_y_p2
+                elif ubicacion_contacto == "Debajo del ala inferior (Al ras)":
+                    x2_c, y2_c = 0.0, -max_y_p2
+                elif ubicacion_contacto == "Lateral derecho (Contra el ala)":
+                    x2_c, y2_c = (b1 / 2.0) - min_x_p2, (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
+                else:
+                    x2_c, y2_c = (-b1 / 2.0) - max_x_p2, (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
+
+                a2 = p2["area"]
+                cos_a2, sin_a2 = cos_r ** 2, sin_r ** 2
+                ix2_local = p2["ix"] * cos_a2 + p2["iy"] * sin_a2
+                iy2_local = p2["ix"] * sin_a2 + p2["iy"] * cos_a2
             else:
-                p2 = None
+                a2, x2_c, y2_c, ix2_local, iy2_local, rot_p2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0
 
-        if agregar_p2:
-            st.markdown("#### 🔗 Posición de Soldadura / Contacto")
+        area_tot = a1 + a2
+        xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
+        yg_comp = ((a1 * y1_c) + (a2 * y2_c)) / area_tot
+
+        ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
+        iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
+
+        with col_pantalla_der:
+            st.markdown("### 🖼️ Sección Compuesta Real (Soldada)")
+            fig, ax = plt.subplots(figsize=(5, 5))
+
+            verts_p1_draw = obtener_poligono_perfil(tipo_p1, p1, x1_c, y1_c, rot_p1)
+            poly1 = patches.Polygon(verts_p1_draw, closed=True, color='navy', alpha=0.75, edgecolor='black', lw=1.2, label=f"P1: {prof1_name}")
+            ax.add_patch(poly1)
+
+            if agregar_p2:
+                verts_p2_draw = obtener_poligono_perfil(tipo_p2, p2, x2_c, y2_c, rot_p2)
+                poly2 = patches.Polygon(verts_p2_draw, closed=True, color='firebrick', alpha=0.75, edgecolor='black', lw=1.2, label=f"P2: {prof2_name} ({rot_p2}°)")
+                ax.add_patch(poly2)
+
+            ax.axhline(yg_comp, color='crimson', linestyle='--', linewidth=1.5, label=f'Eje Neutro X_G ({yg_comp:.2f} cm)')
+            ax.axvline(xg_comp, color='darkgreen', linestyle=':', linewidth=1.5, label=f'Eje Neutro Y_G ({xg_comp:.2f} cm)')
+            ax.plot(xg_comp, yg_comp, 'ro', markersize=8)
+
+            all_x = [v[0] for v in verts_p1_draw] + ([v[0] for v in verts_p2_draw] if agregar_p2 else [])
+            all_y = [v[1] for v in verts_p1_draw] + ([v[1] for v in verts_p2_draw] if agregar_p2 else [])
             
-            rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15, key="rot_p2_slider")
-            
-            ubicacion_contacto = st.selectbox(
-                "Ubicación del Perfil 2 respecto al Base:",
-                [
-                    "Sobre el ala superior (Al ras)",
-                    "Debajo del ala inferior (Al ras)",
-                    "Lateral derecho (Contra el ala)",
-                    "Lateral izquierdo (Contra el ala)"
-                ],
-                key="ubicacion_contacto_select"
-            )
+            margin = 6.0
+            ax.set_xlim(min(all_x) - margin, max(all_x) + margin)
+            ax.set_ylim(min(all_y) - margin, max(all_y) + margin)
+            ax.set_aspect('equal', adjustable='box')
+            ax.set_xlabel("X [cm]")
+            ax.set_ylabel("Y [cm]")
+            ax.grid(True, linestyle='--', alpha=0.5)
+            ax.legend(loc='upper right', fontsize=8)
+            st.pyplot(fig)
 
-            st.caption("ℹ️ **Nota técnica:** Tanto el gráfico como los cálculos de inercias (Teorema de Steiner) consideran el acoplamiento físico real **al ras** de los perfiles (simulando la posición de soldadura), en lugar de superponer centros de gravedad ideales.")
+        d_sup = max(all_y) - yg_comp
+        d_inf = yg_comp - min(all_y)
+        d_der = max(all_x) - xg_comp
+        d_izq = xg_comp - min(all_x)
 
-            h1, b1 = p1["h"], p1["b"]
-            rad_p2 = math.radians(rot_p2)
-            cos_r, sin_r = math.cos(rad_p2), math.sin(rad_p2)
-            
-            verts_p2_local = obtener_poligono_perfil(tipo_p2, p2, 0.0, 0.0, rot_p2)
-            min_y_p2 = min(v[1] for v in verts_p2_local)
-            max_y_p2 = max(v[1] for v in verts_p2_local)
-            min_x_p2 = min(v[0] for v in verts_p2_local)
-            max_x_p2 = max(v[0] for v in verts_p2_local)
+        wx_sup = ix_tot / d_sup if d_sup > 0 else 0
+        wx_inf = ix_tot / d_inf if d_inf > 0 else 0
+        wy_der = iy_tot / d_der if d_der > 0 else 0
+        wy_izq = iy_tot / d_izq if d_izq > 0 else 0
 
-            if ubicacion_contacto == "Sobre el ala superior (Al ras)":
-                x2_c = 0.0
-                y2_c = h1 - min_y_p2
-            elif ubicacion_contacto == "Debajo del ala inferior (Al ras)":
-                x2_c = 0.0
-                y2_c = -max_y_p2
-            elif ubicacion_contacto == "Lateral derecho (Contra el ala)":
-                x2_c = (b1 / 2.0) - min_x_p2
-                y2_c = (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
-            else:
-                x2_c = (-b1 / 2.0) - max_x_p2
-                y2_c = (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
-
-            a2 = p2["area"]
-            cos_a2 = cos_r ** 2
-            sin_a2 = sin_r ** 2
-            
-            ix2_local = p2["ix"] * cos_a2 + p2["iy"] * sin_a2
-            iy2_local = p2["ix"] * sin_a2 + p2["iy"] * cos_a2
-        else:
-            a2, x2_c, y2_c, ix2_local, iy2_local, rot_p2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0
-
-    area_tot = a1 + a2
-    xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
-    yg_comp = ((a1 * y1_c) + (a2 * y2_c)) / area_tot
-
-    ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
-    iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
-
-    with col_pantalla_der:
-        st.markdown("### 🖼️ Sección Compuesta Real (Soldada)")
-
-        fig, ax = plt.subplots(figsize=(5, 5))
-
-        verts_p1 = obtener_poligono_perfil(tipo_p1, p1, x1_c, y1_c, rot_p1)
-        poly1 = patches.Polygon(verts_p1, closed=True, color='navy', alpha=0.75, edgecolor='black', lw=1.2, label=f"P1: {prof1_name}")
-        ax.add_patch(poly1)
-
-        if agregar_p2:
-            verts_p2 = obtener_poligono_perfil(tipo_p2, p2, x2_c, y2_c, rot_p2)
-            poly2 = patches.Polygon(verts_p2, closed=True, color='firebrick', alpha=0.75, edgecolor='black', lw=1.2, label=f"P2: {prof2_name} ({rot_p2}°)")
-            ax.add_patch(poly2)
-
-        ax.axhline(yg_comp, color='crimson', linestyle='--', linewidth=1.5, label=f'Eje Neutro X_G ({yg_comp:.2f} cm)')
-        ax.axvline(xg_comp, color='darkgreen', linestyle=':', linewidth=1.5, label=f'Eje Neutro Y_G ({xg_comp:.2f} cm)')
-        ax.plot(xg_comp, yg_comp, 'ro', markersize=8)
-
-        all_x = [v[0] for v in verts_p1] + ([v[0] for v in verts_p2] if agregar_p2 else [])
-        all_y = [v[1] for v in verts_p1] + ([v[1] for v in verts_p2] if agregar_p2 else [])
-        
-        margin = 6.0
-        ax.set_xlim(min(all_x) - margin, max(all_x) + margin)
-        ax.set_ylim(min(all_y) - margin, max(all_y) + margin)
-        ax.set_aspect('equal', adjustable='box')
-        ax.set_xlabel("X [cm]")
-        ax.set_ylabel("Y [cm]")
-        ax.grid(True, linestyle='--', alpha=0.5)
-        ax.legend(loc='upper right', fontsize=8)
-
-        st.pyplot(fig)
-
-    d_sup = max(all_y) - yg_comp
-    d_inf = yg_comp - min(all_y)
-    d_der = max(all_x) - xg_comp
-    d_izq = xg_comp - min(all_x)
-
-    wx_sup = ix_tot / d_sup if d_sup > 0 else 0
-    wx_inf = ix_tot / d_inf if d_inf > 0 else 0
-    wy_der = iy_tot / d_der if d_der > 0 else 0
-    wy_izq = iy_tot / d_izq if d_izq > 0 else 0
-
+    # PANEL DE RESULTADOS FINALES COMPARTIDOS
     st.markdown("---")
     st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
 

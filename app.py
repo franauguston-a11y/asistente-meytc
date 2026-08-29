@@ -276,7 +276,7 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (LAYOUT OPTIMIZADO LADO A LADO)
+# MÓDULO 3: VIGAS COMBINADAS (LAYOUT CORREGIDO SIN ESPACIOS EXTRA)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
@@ -296,15 +296,15 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8, "ix": 8030.0, "iy": 495.0, "ey": 2.70}
     }
 
-    # CREAMOS 2 COLUMNAS PRINCIPALES: CONTROLES A LA IZQ, GRÁFICO A LA DER
-    col_pantalla_izq, col_pantalla_der = st.columns([1.3, 1.0])
+    # DIVISIÓN PRINCIPAL: CONTROLES A LA IZQUIERDA (1.4), GRÁFICO A LA DERECHA (1.0)
+    col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
     with col_pantalla_izq:
-        # DENTRO DE LA COLUMNA IZQUIERDA, CREAMOS DOS SUBCOLUMNAS PARA PERFIL 1 Y PERFIL 2
+        # 1. SELECCIÓN DE PERFILES (PARALELOS)
         col_p1, col_p2 = st.columns(2)
 
         with col_p1:
-            st.subheader("1. Perfil Base (P1)")
+            st.markdown("### 1. Perfil Base (P1)")
             tipo_p1 = st.selectbox("Tipo Perfil Base:", ["IPN", "UPN"], index=0, key="tipo_p1")
             prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=2, key="prof1_name")
             p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
@@ -314,7 +314,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
 
         with col_p2:
-            st.subheader("2. Refuerzo (P2)")
+            st.markdown("### 2. Refuerzo (P2)")
             agregar_p2 = st.checkbox("¿Agregar perfil 2?", value=True, key="agregar_p2")
 
             if agregar_p2:
@@ -324,16 +324,19 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             else:
                 p2 = None
 
-        st.markdown("---")
-
-        # FORMULARIO CON LOS SLIDERS LADO A LADO CON EL GRÁFICO
+        # 2. CONTROLES DE POSICIONAMIENTO DENTRO DEL FORMULARIO
         if agregar_p2:
-            with st.form("form_posicionamiento_horizontal"):
-                st.subheader("🎯 Posicionamiento y Rotación de P2")
+            with st.form("form_posicionamiento_compacto"):
+                st.markdown("#### 🎯 Posicionamiento y Rotación de P2")
                 
+                # Para ahorrar altura, ubicamos los sliders X e Y en dos columnas dentro del form
                 rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=5)
-                x2_c = st.slider("Posición Centro X2 (cm):", min_value=-20.0, max_value=20.0, value=0.0, step=0.5)
-                y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-10.0, max_value=40.0, value=float(p1["h"] + 2.0), step=0.5)
+                
+                col_sx, col_sy = st.columns(2)
+                with col_sx:
+                    x2_c = st.slider("Posición Centro X2 (cm):", min_value=-20.0, max_value=20.0, value=0.0, step=0.5)
+                with col_sy:
+                    y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-10.0, max_value=40.0, value=float(p1["h"] + 2.0), step=0.5)
                 
                 btn_actualizar = st.form_submit_button("🔄 Actualizar Gráfico", type="primary", use_container_width=True)
 
@@ -379,11 +382,11 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         
         return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
-    # COLUMNA DERECHA: GRÁFICO INMEDIATAMENTE AL LADO
+    # COLUMNA DERECHA: GRÁFICO ALINEADO CON TODO EL PANEL IZQUIERDO
     with col_pantalla_der:
-        st.subheader("🖼️ Sección Compuesta Real")
+        st.markdown("### 🖼️ Sección Compuesta Real")
 
-        fig, ax = plt.subplots(figsize=(5.5, 5.5))
+        fig, ax = plt.subplots(figsize=(5, 5))
 
         verts_p1 = obtener_poligono_perfil(tipo_p1, p1, x1_c, y1_c, rot_p1)
         poly1 = patches.Polygon(verts_p1, closed=True, color='navy', alpha=0.75, edgecolor='black', lw=1.2, label=f"P1: {prof1_name}")
@@ -412,7 +415,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
 
         st.pyplot(fig)
 
-    # RESULTADOS MÓDULOS RESISTENTES (Debajo en todo el ancho)
+    # RESULTADOS MÓDULOS RESISTENTES (EN LA PARTE INFERIOR)
     d_sup = max(all_y) - yg_comp
     d_inf = yg_comp - min(all_y)
     d_der = max(all_x) - xg_comp

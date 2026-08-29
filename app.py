@@ -276,7 +276,7 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS, CATÁLOGOS Y PERFILES PERSONALIZADOS (DXF / CSV)
+# MÓDULO 3: VIGAS COMBINADAS, CATÁLOGOS Y PERFIL PERSONALIZADO (DXF)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
@@ -288,7 +288,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     except ImportError:
         DXF_DISPONIBLE = False
 
-    # CATÁLOGOS COMERCIALES
+    # CATÁLOGOS COMERCIALES (IPN / UPN)
     cat_ipn = {
         "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
         "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
@@ -316,21 +316,19 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 180": {"h": 18.0, "b": 7.0,  "tw": 0.80, "tf": 1.10, "area": 28.0,  "ix": 1350.0, "iy": 114.0, "ey": 1.93},
         "UPN 200": {"h": 20.0, "b": 7.5,  "tw": 0.85, "tf": 1.15, "area": 32.2,  "ix": 1910.0, "iy": 148.0, "ey": 2.01},
         "UPN 220": {"h": 22.0, "b": 8.0,  "tw": 0.90, "tf": 1.20, "area": 37.4,  "ix": 2690.0, "iy": 197.0, "ey": 2.13},
-        "UPN 240": {"h": 24.0, "b": 8.5, "tw": 0.95, "tf": 1.30, "area": 42.3,  "ix": 3600.0, "iy": 248.0, "ey": 2.23},
+        "UPN 240": {"h": 24.0, "b": 8.5,  "tw": 0.95, "tf": 1.30, "area": 42.3,  "ix": 3600.0, "iy": 248.0, "ey": 2.23},
         "UPN 260": {"h": 26.0, "b": 9.0,  "tw": 1.00, "tf": 1.40, "area": 48.3,  "ix": 4820.0, "iy": 317.0, "ey": 2.35},
         "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8,  "ix": 8030.0, "iy": 495.0, "ey": 2.70},
         "UPN 350": {"h": 35.0, "b": 10.5, "tw": 1.15, "tf": 1.60, "area": 77.3,  "ix": 12840.0, "iy": 606.0, "ey": 2.82},
         "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
     }
 
-    # FUNCIONES DE CÁLCULO GEOMÉTRICO POR POLÍGONO (Fórmulas de Green / Shoelace para Secciones Arbitrarias)
+    # FUNCIONES DE CÁLCULO GEOMÉTRICO (Shoelace)
     def calcular_propiedades_poligono(verts):
-        # verts es una lista de tuplas [(x1, y1), (x2, y2), ...] cerrada o abierta
         n = len(verts)
         if n < 3:
             return None, 0, 0, 0, 0, 0
 
-        # Asegurar cierre
         if verts[0] != verts[-1]:
             verts = verts + [verts[0]]
             n = len(verts)
@@ -340,7 +338,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         cy = 0.0
         ix = 0.0
         iy = 0.0
-        pxy = 0.0
 
         for i in range(n - 1):
             xi, yi = verts[i]
@@ -358,19 +355,15 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         cx = cx / (6.0 * area)
         cy = cy / (6.0 * area)
 
-        # Inercias baricéntricas
         for i in range(n - 1):
             xi, yi = verts[i]
             xi1, yi1 = verts[i+1]
             cross = (xi * yi1 - xi1 * yi)
-            
-            # trasladar al baricentro local
             x_i, y_i = xi - cx, yi - cy
             x_ip1, y_ip1 = xi1 - cx, yi1 - cy
 
             ix += (y_i**2 + y_i*y_ip1 + y_ip1**2) * cross
             iy += (x_i**2 + x_i*x_ip1 + x_ip1**2) * cross
-            pxy += (2*x_i*y_i + x_i*y_ip1 + x_ip1*y_i + 2*x_ip1*y_ip1) * cross
 
         ix = abs(ix / 12.0)
         iy = abs(iy / 12.0)
@@ -400,21 +393,31 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         cos_r, sin_r = math.cos(rad), math.sin(rad)
         return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
-    # SELECCIÓN DE FUENTE DE DATOS (Catálogo vs Archivo Personalizado)
+    # SELECCIÓN DE FUENTE DE DATOS
     modo_fuente = st.radio(
-        "Seleccione el origen de la sección principal (Perfil 1):",
-        ["Catálogo Comercial (IPN / UPN)", "📂 Perfil Personalizado (Subir Archivo DXF / CSV)"],
+        "Seleccione el origen de la sección:",
+        ["Catálogo Comercial (IPN / UPN)", "📂 Perfil Personalizado (Subir DXF de AutoCAD)"],
         horizontal=True
     )
 
     col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
-    if modo_fuente == "📂 Perfil Personalizado (Subir Archivo DXF / CSV)":
+    if modo_fuente == "📂 Perfil Personalizado (Subir DXF de AutoCAD)":
         with col_pantalla_izq:
-            st.markdown("### 1. Carga de Geometría CAD")
-            tipo_archivo = st.selectbox("Formato del archivo:", [".csv (Coordenadas X, Y)", ".dxf (AutoCAD Contorno Cerrado)"])
+            st.markdown("### 1. Carga de Geometría CAD (DXF)")
             
-            archivo_subido = st.file_uploader("Suba el archivo del perfil diseñado:", type=["csv", "txt", "dxf"])
+            archivo_subido = st.file_uploader("Suba el archivo del perfil diseñado:", type=["dxf"])
+            
+            # --- ACOTACIONES DE GUÍA PARA EL USUARIO DEBAJO DEL UPLOADER ---
+            with st.expander("ℹ️ Instrucciones para preparar y subir tu archivo DXF en AutoCAD"):
+                st.markdown("""
+                Para que el programa lea tu diseño correctamente sin errores de cálculo:
+                1. **Polilínea Cerrada:** Dibuja el contorno de tu perfil usando el comando **`PLINE`**. Al terminar el último vértice, escribe **`C`** (Cerrar) y presiona *Enter*. No utilices líneas sueltas.
+                2. **Escala Real:** Dibuja la pieza en **centímetros** (por ejemplo, si mide 20 cm de altura, dibújala de 20 unidades).
+                3. **Sin elementos extraños:** Guarda el archivo DXF conteniendo **únicamente la polilínea del perfil**. Evita incluir cotas, ejes de referencia o textos flotantes en el espacio modelo.
+                4. **Versión de guardado:** Ve a *File > Save As* y selecciona **AutoCAD 2018 DXF** (o versiones 2013/2010).
+                """)
+            # -------------------------------------------------------------
             
             verts_p1 = []
             a1, ix1, iy1 = 0, 0, 0
@@ -422,36 +425,27 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             
             if archivo_subido is not None:
                 try:
-                    if ".csv" in tipo_archivo or ".txt" in tipo_archivo:
-                        df_coords = pd.read_csv(archivo_subido)
-                        if 'x' in df_coords.columns and 'y' in df_coords.columns:
-                            verts_p1 = list(zip(df_coords['x'], df_coords['y']))
-                        else:
-                            st.error("El archivo CSV debe contener las columnas 'x' e 'y'.")
-                    elif ".dxf" in tipo_archivo:
-                        if DXF_DISPONIBLE:
-                            doc = ezdxf.read(archivo_subido)
-                            msp = doc.modelspace()
-                            # Extraer polilíneas o líneas cerradas
-                            for entity in msp.query('LWPOLYLINE POLYLINE'):
-                                verts_p1 = [(v[0], v[1]) for v in entity.get_points('xy')]
-                                break # Tomamos el primer contorno detectado
-                            if not verts_p1:
-                                st.error("No se encontró una polilínea válida en el archivo DXF.")
-                        else:
-                            st.error("La librería 'ezdxf' no está instalada en el entorno.")
+                    if DXF_DISPONIBLE:
+                        doc = ezdxf.read(archivo_subido)
+                        msp = doc.modelspace()
+                        for entity in msp.query('LWPOLYLINE POLYLINE'):
+                            verts_p1 = [(v[0], v[1]) for v in entity.get_points('xy')]
+                            break # Toma la primera polilínea válida encontrada
+                        
+                        if not verts_p1:
+                            st.error("No se encontró una polilínea válida en el archivo DXF.")
+                    else:
+                        st.error("La librería 'ezdxf' no está instalada en el entorno.")
 
                     if len(verts_p1) >= 3:
                         _, a1, x1_bar, y1_bar, ix1, iy1 = calcular_propiedades_poligono(verts_p1)
-                        # Centramos respecto al origen baricéntrico para operar de forma consistente
                         verts_p1 = [(v[0] - x1_bar, v[1] - y1_bar) for v in verts_p1]
                         x1_c, y1_c = 0.0, 0.0
                         st.success(f"¡Archivo leído con éxito! Área detectada: {a1:.2f} cm²")
                 except Exception as e:
-                    st.error(f"Error al procesar el archivo: {e}")
+                    st.error(f"Error al procesar el archivo DXF: {e}")
 
-            rot_p1 = 0
-            agregar_p2 = False # En modo personalizado puro operamos con la sección base subida
+            agregar_p2 = False
 
         with col_pantalla_der:
             st.markdown("### 👁️ Visualizador de Control (CAD)")
@@ -467,7 +461,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
                 ax.set_xlim(-margin, margin)
                 ax.set_ylim(-margin, margin)
             else:
-                ax.text(0, 0, "Esperando archivo válido...", ha='center', va='center', fontsize=11, color='gray')
+                ax.text(0, 0, "Esperando archivo DXF válido...", ha='center', va='center', fontsize=11, color='gray')
                 ax.set_xlim(-10, 10)
                 ax.set_ylim(-10, 10)
 
@@ -479,7 +473,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             st.pyplot(fig)
 
         area_tot = a1
-        xg_comp, yg_comp = 0.0, 0.0
+        yg_comp, xg_comp = 0.0, 0.0
         ix_tot, iy_tot = ix1, iy1
         
         if len(verts_p1) >= 3:
@@ -498,7 +492,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             wx_sup, wx_inf, wy_der, wy_izq = 0, 0, 0, 0
 
     else:
-        # MODO CATÁLOGO COMERCIAL (Con Viga Combinada P1 + P2 opcional que ya tenías)
+        # MODO CATÁLOGO COMERCIAL (P1 + P2 combinados)
         with col_pantalla_izq:
             col_p1, col_p2 = st.columns(2)
 
@@ -611,7 +605,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         wy_der = iy_tot / d_der if d_der > 0 else 0
         wy_izq = iy_tot / d_izq if d_izq > 0 else 0
 
-    # PANEL DE RESULTADOS FINALES COMPARTIDOS
+    # PANEL DE RESULTADOS FINALES
     st.markdown("---")
     st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
 

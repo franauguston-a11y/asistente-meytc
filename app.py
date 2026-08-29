@@ -278,8 +278,8 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
 # =====================================================================
 # MÓDULO 3: VIGAS COMBINADAS, CATÁLOGOS Y PERFIL PERSONALIZADO (DXF EN MM)
 # =====================================================================
-elif modulo == " Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner):":
-    st.header(" Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
+elif modulo == "Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
+    st.header("Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
 
     # Intentamos importar dependencias de forma segura
     try:

@@ -505,7 +505,15 @@ elif "Módulo 3" in modulo:
         st.subheader("📂 Importación de Geometría DXF General (Cualquier Figura)")
         archivo_dxf = st.file_uploader("Sube tu archivo DXF en milímetros", type=["dxf"])
         
-        if archivo_dxf is not None and DXF_DISPONIBLE:
+        try:
+            import shapely
+            from shapely.geometry import Polygon, LineString, Point
+            from shapely.ops import polygonize, unary_union
+            SHAPELY_DISPONIBLE = True
+        except ImportError:
+            SHAPELY_DISPONIBLE = False
+
+        if archivo_dxf is not None and DXF_DISPONIBLE and SHAPELY_DISPONIBLE:
             with open("temp_dxf.dxf", "wb") as f:
                 f.write(archivo_dxf.getbuffer())
             
@@ -513,31 +521,63 @@ elif "Módulo 3" in modulo:
                 doc = ezdxf.readfile("temp_dxf.dxf")
                 msp = doc.modelspace()
                 
-                poligonos = []
+                lineas_segmentos = []
+
                 for entity in msp:
-                    if entity.dxftype() == 'LWPOLYLINE':
-                        puntos = [(p[0], p[1]) for p in entity.get_points()]
-                        if len(puntos) >= 3:
-                            if puntos[0] != puntos[-1]:
-                                puntos.append(puntos[0])
-                            poligonos.append(puntos)
-                    elif entity.dxftype() == 'POLYLINE':
-                        puntos = [(p.dxf.location[0], p.dxf.location[1]) for p in entity.points]
-                        if len(puntos) >= 3:
-                            if puntos[0] != puntos[-1]:
-                                puntos.append(puntos[0])
-                            poligonos.append(puntos)
-                
-                if poligonos:
-                    st.success(f"¡Se detectaron {len(poligonos)} contornos cerrados en el archivo DXF!")
+                    dxftype = entity.dxftype()
+
+                    if dxftype == 'LINE':
+                        p1 = (entity.dxf.start.x, entity.dxf.start.y)
+                        p2 = (entity.dxf.end.x, entity.dxf.end.y)
+                        lineas_segmentos.append(LineString([p1, p2]))
+
+                    elif dxftype == 'LWPOLYLINE':
+                        with entity.points('xy') as points:
+                            if len(points) >= 2:
+                                for i in range(len(points) - 1):
+                                    lineas_segmentos.append(LineString([points[i], points[i+1]]))
+                                if entity.closed:
+                                    lineas_segmentos.append(LineString([points[-1], points[0]]))
+
+                    elif dxftype == 'POLYLINE':
+                        points = [(p.dxf.location[0], p.dxf.location[1]) for p in entity.points]
+                        if len(points) >= 2:
+                            for i in range(len(points) - 1):
+                                lineas_segmentos.append(LineString([points[i], points[i+1]]))
+                            if entity.is_closed:
+                                lineas_segmentos.append(LineString([points[-1], points[0]]))
+
+                    elif dxftype == 'CIRCLE':
+                        centro = (entity.dxf.center.x, entity.dxf.center.y)
+                        radio = entity.dxf.radius
+                        circulo_poly = Point(centro).buffer(radio, resolution=64)
+                        lineas_segmentos.append(circulo_poly.boundary)
+
+                    elif dxftype == 'ARC':
+                        try:
+                            flattened = entity.flattening(distance=0.1)
+                            for i in range(len(flattened) - 1):
+                                lineas_segmentos.append(LineString([flattened[i], flattened[i+1]]))
+                        except Exception:
+                            pass
+
+                if lineas_segmentos:
+                    lines_union = unary_union(lineas_segmentos)
+                    poligonos_generados = list(polygonize(lines_union))
+                else:
+                    poligonos_generados = []
+
+                if poligonos_generados:
+                    st.success(f"¡Se detectaron y reconstruyeron {len(poligonos_generados)} contornos válidos en el archivo DXF!")
                     
                     area_total = 0.0
                     Qx_total = 0.0
                     Qy_total = 0.0
                     detalles_figuras = []
                     
-                    for idx, poly in enumerate(poligonos):
-                        n = len(poly)
+                    for idx, poly in enumerate(poligonos_generados):
+                        coords = list(poly.exterior.coords)
+                        n = len(coords)
                         A_i = 0.0
                         Cx_i = 0.0
                         Cy_i = 0.0
@@ -545,8 +585,8 @@ elif "Módulo 3" in modulo:
                         Iy_local = 0.0
                         
                         for i in range(n - 1):
-                            x1, y1 = poly[i]
-                            x2, y2 = poly[i+1]
+                            x1, y1 = coords[i]
+                            x2, y2 = coords[i+1]
                             cross = (x1 * y2 - x2 * y1)
                             A_i += cross
                             Cx_i += (x1 + x2) * cross
@@ -555,12 +595,13 @@ elif "Módulo 3" in modulo:
                         A_i = abs(A_i / 2.0)
                         if A_i < 1e-6:
                             continue
+                            
                         Cx_i = Cx_i / (6.0 * A_i)
                         Cy_i = Cy_i / (6.0 * A_i)
                         
                         for i in range(n - 1):
-                            x1, y1 = poly[i]
-                            x2, y2 = poly[i+1]
+                            x1, y1 = coords[i]
+                            x2, y2 = coords[i+1]
                             cross = (x1 * y2 - x2 * y1)
                             Ix_local += (y1**2 + y1*y2 + y2**2) * cross
                             Iy_local += (x1**2 + x1*x2 + x2**2) * cross
@@ -573,7 +614,7 @@ elif "Módulo 3" in modulo:
                         Qy_total += A_i * Cx_i
                         
                         detalles_figuras.append({
-                            'id': idx + 1, 'area': A_i, 'cx': Cx_i, 'cy': Cy_i,
+                            'id': idx + 1, 'polygon': coords, 'area': A_i, 'cx': Cx_i, 'cy': Cy_i,
                             'ix_local': Ix_local, 'iy_local': Iy_local
                         })
                     
@@ -593,58 +634,59 @@ elif "Módulo 3" in modulo:
                             dy = fig['cy'] - YG
                             Ix_total += fig['ix_local'] + fig['area'] * (dy ** 2)
                             Iy_total += fig['iy_local'] + fig['area'] * (dx ** 2)
-                        
-                        for poly in poligonos:
-                            for p in poly:
+                            
+                            for p in fig['polygon']:
                                 if p[1] > y_max: y_max = p[1]
                                 if p[1] < y_min: y_min = p[1]
                                 if p[0] > x_max: x_max = p[0]
                                 if p[0] < x_min: x_min = p[0]
                         
                         dist_sup = max(abs(y_max - YG), 1e-5)
-                        dist_inf = max(abs(YG - y_min), 1e-5)
+                        data_inf = max(abs(YG - y_min), 1e-5)
                         dist_der = max(abs(x_max - XG), 1e-5)
                         dist_izq = max(abs(XG - x_min), 1e-5)
 
                         Wx_sup = Ix_total / dist_sup
-                        Wx_inf = Ix_total / dist_inf
+                        Wx_inf = Ix_total / data_inf
                         Wy_der = Iy_total / dist_der
                         Wy_izq = Iy_total / dist_izq
                         
                         st.markdown("### 📊 Resultados del Análisis Estructural General (Teorema de Steiner)")
                         col1, col2, col3 = st.columns(3)
-                        col1.metric("Área Total ($A$)", f"{area_total:.2f} mm²")
-                        col2.metric("Baricentro ($X_G, Y_G$)", f"({XG:.2f}, {YG:.2f}) mm")
-                        col3.metric("Inercia Global ($I_x$)", f"{Ix_total:.2e} mm⁴")
+                        col1.metric("Área Total (A)", f"{area_total:.2f} mm²")
+                        col2.metric("Baricentro (X_G, Y_G)", f"({XG:.2f}, {YG:.2f}) mm")
+                        col3.metric("Inercia Global (Ix)", f"{Ix_total:.2e} mm⁴")
                         
                         col4, col5 = st.columns(2)
-                        col4.metric("Módulo Sup ($W_{x,sup}$)", f"{Wx_sup:.2f} mm³")
-                        col5.metric("Módulo Inf ($W_{x,inf}$)", f"{Wx_inf:.2f} mm³")
+                        col4.metric("Módulo Sup (Wx,sup)", f"{Wx_sup:.2f} mm³")
+                        col5.metric("Módulo Inf (Wx,inf)", f"{Wx_inf:.2f} mm³")
 
                         col6, col7 = st.columns(2)
-                        col6.metric("Módulo Der ($W_{y,der}$)", f"{Wy_der:.2f} mm³")
-                        col7.metric("Módulo Izq ($W_{y,izq}$)", f"{Wy_izq:.2f} mm³")
+                        col6.metric("Módulo Der (Wy,der)", f"{Wy_der:.2f} mm³")
+                        col7.metric("Módulo Izq (Wy,izq)", f"{Wy_izq:.2f} mm³")
                         
                         st.markdown("### 🖼️ Visualización Gráfica 2D del DXF")
                         fig, ax = plt.subplots(figsize=(6, 6))
-                        for poly in poligonos:
-                            xs = [p[0] for p in poly]
-                            ys = [p[1] for p in poly]
-                            ax.plot(xs, ys, marker='o', markersize=2)
-                            ax.fill(xs, ys, alpha=0.3)
-                        ax.plot(XG, YG, 'rx', markersize=10, label='Baricentro Global ($G$)')
+                        for fig_item in detalles_figuras:
+                            xs = [p[0] for p in fig_item['polygon']]
+                            ys = [p[1] for p in fig_item['polygon']]
+                            ax.plot(xs, ys, color='navy', linewidth=1.2)
+                            ax.fill(xs, ys, color='skyblue', alpha=0.4)
+                            
+                        ax.plot(XG, YG, 'ro', markersize=8, label='Baricentro Global (G)')
                         ax.axhline(YG, color='crimson', linestyle='--', linewidth=1.2, label=f'Eje Neutro X_G ({YG:.2f} mm)')
                         ax.axvline(XG, color='darkgreen', linestyle=':', linewidth=1.2, label=f'Eje Neutro Y_G ({XG:.2f} mm)')
-                        ax.set_aspect('equal')
-                        ax.set_xlabel('X (mm)')
-                        ax.set_ylabel('Y (mm)')
+                        ax.set_aspect('equal', adjustable='box')
+                        ax.set_xlabel('X [mm]')
+                        ax.set_ylabel('Y [mm]')
+                        ax.grid(True, linestyle='--', alpha=0.5)
                         ax.legend(loc='upper right', fontsize=8)
                         st.pyplot(fig)
                     else:
-                        st.error("El área total calculada es igual a cero.")
+                        st.error("El área total calculada de los contornos es igual a cero.")
                 else:
-                    st.warning("No se encontraron contornos cerrados (polilíneas) válidos en el archivo DXF.")
+                    st.warning("No se pudieron reconstruir contornos cerrados válidos. Asegúrate de que las líneas o figuras estén conectadas correctamente.")
             except Exception as e:
                 st.error(f"Error al procesar el archivo DXF: {e}")
-        elif archivo_dxf is not None and not DXF_DISPONIBLE:
-            st.error("La librería 'ezdxf' no está instalada en el entorno.")
+        elif archivo_dxf is not None and (not DXF_DISPONIBLE or not SHAPELY_DISPONIBLE):
+            st.error("Las librerías 'ezdxf' y 'shapely' son requeridas para esta función. Instálalas en el entorno de ejecución.")

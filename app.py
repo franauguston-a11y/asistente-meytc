@@ -288,7 +288,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     except ImportError:
         DXF_DISPONIBLE = False
 
-    # CATÁLOGOS COMERCIALES (IPN / UPN - Mantenidos en cm por norma de perfiles comerciales)
+    # CATÁLOGOS COMERCIALES (IPN / UPN)
     cat_ipn = {
         "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
         "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
@@ -363,7 +363,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             x_ip1, y_ip1 = xi1 - cx, yi1 - cy
 
             ix += (y_i**2 + y_i*y_ip1 + y_ip1**2) * cross
-            iy += (x_i**2 + x_i*x_ip1 + x_ip1**2) * cross
+            iy += (x_i**2 + x_i*x_ip1 + x_ip1*y_ip1) * cross
 
         ix = abs(ix / 12.0)
         iy = abs(iy / 12.0)
@@ -408,7 +408,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             
             archivo_subido = st.file_uploader("Suba el archivo del perfil diseñado:", type=["dxf"])
             
-            # --- ACOTACIONES ACTUALIZADAS A MILÍMETROS ---
             with st.expander("ℹ️ Instrucciones para preparar y subir tu archivo DXF en milímetros"):
                 st.markdown("""
                 Para que el programa lea tu diseño mecánico correctamente:
@@ -417,7 +416,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
                 3. **Sin elementos extraños:** Guarda el archivo DXF conteniendo **únicamente la polilínea del perfil**. Evita incluir cotas, ejes de referencia o textos flotantes.
                 4. **Versión de guardado:** Ve a *File > Save As* y selecciona **AutoCAD 2018 DXF** (o versiones 2013/2010).
                 """)
-            # ---------------------------------------------
             
             verts_p1 = []
             a1, ix1, iy1 = 0, 0, 0
@@ -426,12 +424,24 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             if archivo_subido is not None:
                 try:
                     if DXF_DISPONIBLE:
-                        doc = ezdxf.read(archivo_subido)
-                        msp = doc.modelspace()
-                        for entity in msp.query('LWPOLYLINE POLYLINE'):
-                            verts_p1 = [(v[0], v[1]) for v in entity.get_points('xy')]
-                            break 
-                        
+                        import tempfile
+                        import os
+
+                        # Creamos un archivo temporal en disco para evitar el error de bytes-like object
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.dxf') as tmp_file:
+                            tmp_file.write(archivo_subido.getvalue())
+                            tmp_path = tmp_file.name
+
+                        try:
+                            doc = ezdxf.readfile(tmp_path)
+                            msp = doc.modelspace()
+                            for entity in msp.query('LWPOLYLINE POLYLINE'):
+                                verts_p1 = [(v[0], v[1]) for v in entity.get_points('xy')]
+                                break 
+                        finally:
+                            if os.path.exists(tmp_path):
+                                os.unlink(tmp_path)
+
                         if not verts_p1:
                             st.error("No se encontró una polilínea válida en el archivo DXF.")
                     else:
@@ -510,7 +520,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             st.metric("Wy Izquierdo:", f"{wy_izq:,.0f} mm³")
 
     else:
-        # MODO CATÁLOGO COMERCIAL (P1 + P2) - Conserva unidades estándar de catálogo
+        # MODO CATÁLOGO COMERCIAL (P1 + P2)
         with col_pantalla_izq:
             col_p1, col_p2 = st.columns(2)
 

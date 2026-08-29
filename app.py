@@ -277,13 +277,11 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
 
 # ==============================================================================
 # MÓDULO 3: VIGAS COMBINADAS (CATÁLOGO COMPLETO, ACOPLAMIENTO AL RAS Y TIEMPO REAL)
-# Fuente de catálogos: Manuales técnicos de perfiles estructurales de acero 
-# laminado en caliente (Series IPN e UPN normalizadas).
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
 
-    # CATÁLOGO IPN COMPLETO (Norma técnica de perfiles doble T de ala inclinada)
+    # CATÁLOGO IPN COMPLETO
     cat_ipn = {
         "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
         "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
@@ -302,7 +300,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "IPN 500": {"h": 50.0, "b": 18.5, "tw": 1.80, "tf": 2.70, "area": 179.0, "ix": 66700.0, "iy": 2140.0, "ey": 0.0}
     }
 
-    # CATÁLOGO UPN COMPLETO (Norma técnica de perfiles en U de ala inclinada)
+    # CATÁLOGO UPN COMPLETO
     cat_upn = {
         "UPN 80":  {"h": 8.0,  "b": 4.5,  "tw": 0.50, "tf": 0.80, "area": 11.0,  "ix": 106.0,  "iy": 19.4,  "ey": 1.35},
         "UPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.55, "tf": 0.85, "area": 13.5,  "ix": 206.0,  "iy": 29.3,  "ey": 1.45},
@@ -319,7 +317,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
     }
 
-    # DIVISIÓN PRINCIPAL: CONTROLES A LA IZQUIERDA (1.4), GRÁFICO A LA DERECHA (1.0)
     col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
     with col_pantalla_izq:
@@ -340,13 +337,15 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             agregar_p2 = st.checkbox("¿Agregar perfil 2?", value=True, key="agregar_p2")
 
             if agregar_p2:
-                tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1, key="tipo_p2")
-                prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=6, key="prof2_name")
-                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_upn[prof2_name]
+                tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0, key="tipo_p2")
+                
+                # CORRECCIÓN CLAVE AQUÍ: Se usa el catálogo correspondiente según el tipo seleccionado
+                lista_cat_p2 = cat_upn if tipo_p2 == "UPN" else cat_ipn
+                prof2_name = st.selectbox("Designación Perfil 2:", list(lista_cat_p2.keys()), index=0, key="prof2_name")
+                p2 = lista_cat_p2[prof2_name]
             else:
                 p2 = None
 
-        # CONTROLES DE POSICIÓN EN TIEMPO REAL (SIN FORMULARIO)
         if agregar_p2:
             st.markdown("#### 🔗 Posición de Soldadura / Contacto")
             
@@ -363,10 +362,8 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
                 key="ubicacion_contacto_select"
             )
 
-            # Nota técnica reubicada debajo de los controles de posición de P2
             st.caption("ℹ️ **Nota técnica:** Tanto el gráfico como los cálculos de inercias (Teorema de Steiner) consideran el acoplamiento físico real **al ras** de los perfiles (simulando la posición de soldadura), en lugar de superponer centros de gravedad ideales.")
 
-            # FUNCIÓN AUXILIAR DE POLÍGONOS PARA CÁLCULO DE LÍMITES EXACTOS
             def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
                 h, b, tw, tf = p_data["h"], p_data["b"], p_data["tw"], p_data["tf"]
                 ey = p_data.get("ey", 0.0)
@@ -388,10 +385,8 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
 
                 rad = math.radians(rot_deg)
                 cos_r, sin_r = math.cos(rad), math.sin(rad)
-                
                 return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
-            # DIMENSIONES Y EXTREMOS REALES DEL POLÍGONO ROTADO DE P2 (CONTORNO EXACTO)
             h1, b1 = p1["h"], p1["b"]
             rad_p2 = math.radians(rot_p2)
             cos_r, sin_r = math.cos(rad_p2), math.sin(rad_p2)
@@ -402,17 +397,16 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             min_x_p2 = min(v[0] for v in verts_p2_local)
             max_x_p2 = max(v[0] for v in verts_p2_local)
 
-            # ACOPLAMIENTO EXACTO AL BORDE DE P1 (P1 va desde y=0 hasta y=h1)
             if ubicacion_contacto == "Sobre el ala superior (Al ras)":
                 x2_c = 0.0
-                y2_c = h1 - min_y_p2  # El borde inferior de P2 toca exactamente el borde superior de P1
+                y2_c = h1 - min_y_p2
             elif ubicacion_contacto == "Debajo del ala inferior (Al ras)":
                 x2_c = 0.0
-                y2_c = -max_y_p2  # El borde superior de P2 toca exactamente y=0 de P1
+                y2_c = -max_y_p2
             elif ubicacion_contacto == "Lateral derecho (Contra el ala)":
                 x2_c = (b1 / 2.0) - min_x_p2
                 y2_c = (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
-            else:  # Lateral izquierdo
+            else:
                 x2_c = (-b1 / 2.0) - max_x_p2
                 y2_c = (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
 
@@ -425,7 +419,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         else:
             a2, x2_c, y2_c, ix2_local, iy2_local, rot_p2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0
 
-    # CÁLCULOS BARICENTRO E INERCIAS (Teorema de Steiner)
     area_tot = a1 + a2
     xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
     yg_comp = ((a1 * y1_c) + (a2 * y2_c)) / area_tot
@@ -433,7 +426,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
     iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
 
-    # COLUMNA DERECHA: GRÁFICO 
     with col_pantalla_der:
         st.markdown("### 🖼️ Sección Compuesta Real (Soldada)")
 
@@ -466,7 +458,6 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
 
         st.pyplot(fig)
 
-    # RESULTADOS MÓDULOS RESISTENTES
     d_sup = max(all_y) - yg_comp
     d_inf = yg_comp - min(all_y)
     d_der = max(all_x) - xg_comp

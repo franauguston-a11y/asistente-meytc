@@ -83,6 +83,8 @@ if modulo == "🛞 Módulo 1: Simulación Rodamientos (ISO 281)":
         st.markdown(f"$$L_{{10h}} = \\frac{{10^6}}{{60 \\cdot {rpm}}} \\cdot {l10_mill:.2f} = {l10_horas:,.0f} \\text{{ horas}}$$")
         st.markdown(f"* **Régimen considerado:** {horas_dia:.0f} hs/día × {dias_ano} días/año = {horas_anuales:,.0f} hs/año.")
 
+    st.caption("📖 *Fuente de referencia: Norma Internacional ISO 281 (Cálculo de capacidad de carga dinámica y vida nominal de rodamientos).*")
+
 # ==============================================================================
 # MÓDULO 2: BUSCADOR DE CATÁLOGOS CON IA (Multiparámetro Extendido)
 # ==============================================================================
@@ -153,6 +155,7 @@ elif modulo == "🔍 Módulo 2: Buscador de Catálogos (IA)":
         "Norma / Fabricante": ["DIN 3060 / IPH", "DIN 3069 / IPH", "ISO 281 / SKF"]
     }
     st.dataframe(pd.DataFrame(data_cables), use_container_width=True)
+    st.caption("📖 *Fuente de referencia: Catálogos oficiales IPH S.A. (Cables de Acero) y SKF Group (Rodamientos).*")
 
 # ==============================================================================
 # MÓDULO 3: SELECCIÓN DE CABLES DE ACERO (NORMA DIN 655) Y PREDIMENSIONADO
@@ -226,7 +229,7 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
         {"dc": 44, "s": 49, "r": 24.0, "a": 6.0}
     ]
 
-    # --- NAVEGACIÓN INTERNA POR PESTAÑAS (SOLAPAS) EN EL MÓDULO 3 ---
+    # --- NAVEGACIÓN INTERNA POR PESTAÑAS EN EL MÓDULO 3 ---
     tab_cable_m3, tab_tambor_m3, tab_polea_m3 = st.tabs([
         "🪢 1. Selección del Cable",
         "🥁 2. Dimensionamiento de Tambor",
@@ -252,7 +255,6 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
                 ["Movimiento de precisión", "Movimiento poco frecuente", "Movimiento frecuente"]
             )
             
-            # Filtro dinámico de importancia según frecuencia
             opciones_importancia = []
             if frecuencia == "Movimiento de precisión":
                 opciones_importancia = ["Sin precisar"]
@@ -264,7 +266,8 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
             importancia = st.selectbox("Importancia de la carga:", opciones_importancia)
 
             grupo_detectado = tabla5.get((frecuencia, importancia), "III")
-            st.success(f"📌 **Grupo de Mecanismo Obtenido:** Grupo **{grupo_detectado}** (Tabla N° 5)")
+            st.success(f"📌 **Grupo de Mecanismo Obtenido:** Grupo **{grupo_detectado}**")
+            st.caption("📖 *Fuente: Clasificación del grupo según Tabla N° 5 — Norma DIN 655.*")
 
             p_group = tabla7[grupo_detectado]
             kc_min, kc_max = p_group["kc"]
@@ -278,6 +281,7 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
             * **Rango Coef. Polea $c_p$:** `{cp_min}` – `{cp_max}`
             * **Rango Coef. Polea Comp. $c_{{pc}}$:** `{cpc_min}` – `{cpc_max}`
             """)
+            st.caption("📖 *Fuente: Coeficientes para dimensionado según Tabla N° 7 — Norma DIN 655.*")
 
         with col2:
             st.subheader("2. Dimensionado del Cable")
@@ -296,7 +300,6 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
             with col_r:
                 resistencia_mat = st.selectbox("Tensión del Alambre (kgf/mm²):", [130, 160, 180])
 
-            # Buscar carga de rotura más cercana o exacta
             cables_disponibles = tabla3_din655[construccion]
             d_mas_cercano = min(cables_disponibles.keys(), key=lambda x: abs(x - dc_adoptado))
             f0_rotura = cables_disponibles[d_mas_cercano][resistencia_mat]
@@ -308,17 +311,17 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
                 mnu_max *= 1.125
 
             st.markdown(f"""
-            * **Carga de Rotura Nominal ($F_0$):** **{f0_rotura:,.0f} kgf** *(Tabla N° 3 para d={d_mas_cercano}mm)*
+            * **Carga de Rotura Nominal ($F_0$):** **{f0_rotura:,.0f} kgf**
             * **Coeficiente de Seguridad Real ($\mu$):** **{coef_seguridad_real:.2f}**
             * **Coeficiente Exigido:** Mínimo **{mnu_min:.2f}**
             """)
+            st.caption(f"📖 *Fuente: Cargas de rotura $F_0$ según Tabla N° 3 para d={d_mas_cercano}mm — Norma DIN 655 y Catálogo IPH.*")
 
             if coef_seguridad_real >= mnu_min:
                 st.success("✅ **El cable ADOPTADO CUMPLE con el coeficiente de seguridad requerido.**")
             else:
                 st.error("❌ **VERIFICACIÓN FALLIDA:** El coeficiente de seguridad es menor al exigido. Aumentá el diámetro del cable.")
 
-            # BOTÓN DE GUARDADO EN SESSION_STATE
             if st.button("💾 Confirmar Selección de Cable para la App", type="primary"):
                 st.session_state.cable_seleccionado = {
                     "guardado": True,
@@ -332,7 +335,10 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
                 }
                 st.success("✅ Datos transferidos automáticamente a las solapas de Tambor y Poleas.")
 
-    # Recuperación de datos del estado de la sesión
+        st.markdown("---")
+        st.caption("📖 *Referencias de la solapa: Norma DIN 655 (Aparatos de Elevación - Cables de Acero) y Catálogo Técnico IPH.*")
+
+    # Recuperación de datos de sesión
     c_data = st.session_state.cable_seleccionado
 
     # --------------------------------------------------------------------------
@@ -341,12 +347,12 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
     with tab_tambor_m3:
         st.subheader("2. Dimensionamiento de Tambor de Arrollamiento")
 
-        # BUENA PRÁCTICA 1: Información Read-Only del cable heredado
         st.info(
             f"📌 **Cable Heredado:** $D_c = \\mathbf{{{c_data['diametro_dc']:.1f}\\text{{ mm}}}}$ | "
             f"Solicitación $S_{{ram}} = \\mathbf{{{c_data['s_ramal']:,.1f}\\text{{ kgf}}}}$ | "
             f"Grupo: **{c_data['grupo_detectado']}** ($c_{{t,min}} = {c_data['ct_min']}$)"
         )
+        st.caption("📖 *Fuente: Datos heredados de la Solapa 1 (Selección del Cable).*")
 
         dt_teorico = c_data["ct_min"] * math.sqrt(c_data["s_ramal"])
 
@@ -361,10 +367,10 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
                 value=float(c_data["ct_min"]), 
                 step=1.0
             )
+            st.caption("📖 *Fuente: Coeficiente $c_t$ extraído de la Tabla N° 7 — Norma DIN 655.*")
             
             st.write(f"- **Diámetro teóricamente necesario ($D_{{t,calc}}$):** `{dt_teorico:.1f} mm`")
 
-            # BUENA PRÁCTICA 3: Modificación con Default inteligente
             dt_adoptado = st.number_input(
                 "Adopto Diámetro Primitivo del Tambor $D_t$ (mm):",
                 min_value=10.0,
@@ -372,7 +378,6 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
                 step=10.0
             )
 
-            # Alerta dinámica sobre fatiga y norma
             if dt_adoptado < dt_teorico:
                 st.error(
                     f"⚠️ **ADVERTENCIA TÉCNICA:** El diámetro elegido ({dt_adoptado} mm) es menor al teórico "
@@ -384,16 +389,13 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
         with col_t2:
             st.markdown("#### Parámetros Operativos y Geometría")
             
-            # BUENA PRÁCTICA 2: Entradas adicionales con Defaults inteligentes
             altura_h = st.number_input("Altura de elevación $h$ (m):", min_value=1.0, value=6.0, step=0.5)
             separacion_sep = st.number_input("Separación central entre ranuras $s_{ep}$ (mm):", min_value=0.0, value=250.0, step=10.0)
             espiras_seg = st.number_input("Espiras adicionales de seguridad:", min_value=1, value=3, step=1)
 
-            # Geometría Tabla 13 según el diámetro de cable
             geo = min(tabla13, key=lambda x: abs(x["dc"] - c_data["diametro_dc"]))
             s_paso, r_ranura, a_juego = geo["s"], geo["r"], geo["a"]
 
-            # Cálculo de espiras y dimensiones
             cant_espiras = (((c_data["carga_total_p"] / 2) * altura_h * 1000) / (dt_adoptado * math.pi)) + 2 * espiras_seg if dt_adoptado > 0 else 0
             cant_espiras_adop = math.ceil(cant_espiras)
 
@@ -407,6 +409,10 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
             * **Longitud Mínima del Tambor ($L_t$):** **{lt_calc:.1f} mm**
             * **Diámetro Exterior del Tambor ($D_{{et}}$):** **{det_calc:.1f} mm**
             """)
+            st.caption("📖 *Fuente: Perfil geométrico de ranurado obtenido de Tabla N° 13 — Norma DIN 655.*")
+
+        st.markdown("---")
+        st.caption("📖 *Referencias de la solapa: Norma DIN 655 (Diseño constructivo de tambores y canaladuras de arrollamiento).*")
 
     # --------------------------------------------------------------------------
     # SOLAPA 3: DIMENSIONAMIENTO DE POLEAS
@@ -414,12 +420,12 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
     with tab_polea_m3:
         st.subheader("3. Dimensionamiento de Poleas (Reenvío y Compensadora)")
 
-        # BUENA PRÁCTICA 1: Información Read-Only del cable heredado
         st.info(
             f"📌 **Cable Heredado:** $D_c = \\mathbf{{{c_data['diametro_dc']:.1f}\\text{{ mm}}}}$ | "
             f"Solicitación $S_{{ram}} = \\mathbf{{{c_data['s_ramal']:,.1f}\\text{{ kgf}}}}$ | "
             f"Grupo: **{c_data['grupo_detectado']}**"
         )
+        st.caption("📖 *Fuente: Datos heredados de la Solapa 1 (Selección del Cable).*")
 
         dp_teorico = c_data["cp_min"] * math.sqrt(c_data["s_ramal"])
         dpc_teorico = c_data["cpc_min"] * math.sqrt(c_data["s_ramal"])
@@ -434,6 +440,8 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
                 value=float(c_data["cp_min"]), 
                 step=1.0
             )
+            st.caption("📖 *Fuente: Coeficiente $c_p$ según Tabla N° 7 — Norma DIN 655.*")
+            
             st.write(f"- **Diámetro Mínimo Requerido ($D_{{p,calc}}$):** `{dp_teorico:.1f} mm`")
 
             dp_adoptado = st.number_input(
@@ -456,6 +464,8 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
                 value=float(c_data["cpc_min"]), 
                 step=1.0
             )
+            st.caption("📖 *Fuente: Coeficiente $c_{pc}$ según Tabla N° 7 — Norma DIN 655.*")
+            
             st.write(f"- **Diámetro Mínimo Requerido ($D_{{pc,calc}}$):** `{dpc_teorico:.1f} mm`")
 
             dpc_adoptado = st.number_input(
@@ -475,16 +485,20 @@ elif modulo == "🏗️ Módulo 3: Selección de Cables (Norma DIN 655)":
         
         col_pr1, col_pr2 = st.columns(2)
         with col_pr1:
-            # Entrada de ángulo de abrazo para esfuerzo radial en eje
             angulo_abrazo = st.slider(
                 "Ángulo de abrazo del cable en la polea de reenvío (α) [°]",
                 min_value=30, max_value=180, value=180, step=5
             )
             fuerza_resultante_eje = 2.0 * c_data["s_ramal"] * math.sin(math.radians(angulo_abrazo / 2.0))
             st.metric(label="Carga Resultante Radial en el Eje/Rodamiento:", value=f"{fuerza_resultante_eje:,.1f} kgf")
+            st.caption("📖 *Fuente: Cálculo estático vectorial de esfuerzos radiales sobre soportes/ejes.*")
 
         with col_pr2:
             geo_p = min(tabla13, key=lambda x: abs(x["dc"] - c_data["diametro_dc"]))
             st.write(f"- **Radio de la garganta ($r$):** `{geo_p['r']} mm`")
             st.write(f"- **Paso normativo recomendado ($s$):** `{geo_p['s']} mm`")
-            st.caption("Esta carga sobre el eje puede utilizarse de forma directa como Carga Dinámica P en el Módulo 1 de Rodamientos.")
+            st.caption("📖 *Fuente: Perfil de garganta estándar según Tabla N° 13 — Norma DIN 655 / ISO 4301.*")
+
+        st.markdown("---")
+        st.caption("📖 *Referencias de la solapa: Norma DIN 655 y Criterios de Selección SKF/ISO para Poleas de Carga.*")
+        

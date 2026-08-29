@@ -30,12 +30,13 @@ if "cable_seleccionado" not in st.session_state:
         "carga_total_p": 10000.0   # kgf
     }
 
-# Navegación lateral reordenada
+# Navegación lateral
 modulo = st.sidebar.radio(
     "Navegación de Módulos:",
     [
         "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)",
-        "🛞 Módulo 2: Simulación Rodamientos (ISO 281)"
+        "🛞 Módulo 2: Simulación Rodamientos (ISO 281)",
+        "📐 Módulo 3: Vigas Combinadas y Módulo Resistente (Steiner)"
     ]
 )
 
@@ -118,9 +119,6 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         "🔘 3. Dimensionamiento de Poleas"
     ])
 
-    # --------------------------------------------------------------------------
-    # SOLAPA 1: SELECCIÓN DEL CABLE
-    # --------------------------------------------------------------------------
     with tab_cable_m3:
         col1, col2 = st.columns(2)
 
@@ -220,15 +218,10 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         st.markdown("---")
         st.caption("📖 *Referencias de la solapa: Norma DIN 655 (Aparatos de Elevación - Cables de Acero) y Catálogo Técnico IPH.*")
 
-    # Recuperación de datos de sesión
     c_data = st.session_state.cable_seleccionado
 
-    # --------------------------------------------------------------------------
-    # SOLAPA 2: DIMENSIONAMIENTO DE TAMBOR
-    # --------------------------------------------------------------------------
     with tab_tambor_m3:
         st.subheader("2. Dimensionamiento de Tambor de Arrollamiento")
-
         st.info(
             f"📌 **Cable Heredado:** $D_c = \\mathbf{{{c_data['diametro_dc']:.1f}\\text{{ mm}}}}$ | "
             f"Solicitación $S_{{ram}} = \\mathbf{{{c_data['s_ramal']:,.1f}\\text{{ kgf}}}}$ | "
@@ -239,38 +232,21 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         dt_teorico = c_data["ct_min"] * math.sqrt(c_data["s_ramal"])
 
         col_t1, col_t2 = st.columns(2)
-
         with col_t1:
             st.markdown("#### Selección de Parámetros y Verificación")
-            
-            ct_adoptado = st.number_input(
-                "Adopto Coeficiente de Tambor ($c_t$):", 
-                min_value=1.0, 
-                value=float(c_data["ct_min"]), 
-                step=1.0
-            )
+            ct_adoptado = st.number_input("Adopto Coeficiente de Tambor ($c_t$):", min_value=1.0, value=float(c_data["ct_min"]), step=1.0)
             st.caption("📖 *Fuente: Coeficiente $c_t$ extraído de la Tabla N° 7 — Norma DIN 655.*")
             
             st.write(f"- **Diámetro teóricamente necesario ($D_{{t,calc}}$):** `{dt_teorico:.1f} mm`")
-
-            dt_adoptado = st.number_input(
-                "Adopto Diámetro Primitivo del Tambor $D_t$ (mm):",
-                min_value=10.0,
-                value=float(round(dt_teorico, -1)),
-                step=10.0
-            )
+            dt_adoptado = st.number_input("Adopto Diámetro Primitivo del Tambor $D_t$ (mm):", min_value=10.0, value=float(round(dt_teorico, -1)), step=10.0)
 
             if dt_adoptado < dt_teorico:
-                st.error(
-                    f"⚠️ **ADVERTENCIA TÉCNICA:** El diámetro elegido ({dt_adoptado} mm) es menor al teórico "
-                    f"calculado ({dt_teorico:.1f} mm). Esto provocará excesiva fatiga por flexión en el cable."
-                )
+                st.error(f"⚠️ **ADVERTENCIA TÉCNICA:** El diámetro elegido ({dt_adoptado} mm) es menor al teórico calculado ({dt_teorico:.1f} mm).")
             else:
                 st.success("✅ El diámetro seleccionado cumple con el valor mínimo requerido por la norma.")
 
         with col_t2:
             st.markdown("#### Parámetros Operativos y Geometría")
-            
             altura_h = st.number_input("Altura de elevación $h$ (m):", min_value=1.0, value=6.0, step=0.5)
             separacion_sep = st.number_input("Separación central entre ranuras $s_{ep}$ (mm):", min_value=0.0, value=250.0, step=10.0)
             espiras_seg = st.number_input("Espiras adicionales de seguridad:", min_value=1, value=3, step=1)
@@ -296,12 +272,8 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         st.markdown("---")
         st.caption("📖 *Referencias de la solapa: Norma DIN 655 (Diseño constructivo de tambores y canaladuras de arrollamiento).*")
 
-    # --------------------------------------------------------------------------
-    # SOLAPA 3: DIMENSIONAMIENTO DE POLEAS
-    # --------------------------------------------------------------------------
     with tab_polea_m3:
         st.subheader("3. Dimensionamiento de Poleas (Reenvío y Compensadora)")
-
         st.info(
             f"📌 **Cable Heredado:** $D_c = \\mathbf{{{c_data['diametro_dc']:.1f}\\text{{ mm}}}}$ | "
             f"Solicitación $S_{{ram}} = \\mathbf{{{c_data['s_ramal']:,.1f}\\text{{ kgf}}}}$ | "
@@ -313,64 +285,35 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         dpc_teorico = c_data["cpc_min"] * math.sqrt(c_data["s_ramal"])
 
         col_p1, col_p2 = st.columns(2)
-
         with col_p1:
             st.markdown("#### Polea de Reenvío (Principal)")
-            cp_adoptado = st.number_input(
-                "Adopto Coeficiente $c_p$:", 
-                min_value=1.0, 
-                value=float(c_data["cp_min"]), 
-                step=1.0
-            )
+            cp_adoptado = st.number_input("Adopto Coeficiente $c_p$:", min_value=1.0, value=float(c_data["cp_min"]), step=1.0)
             st.caption("📖 *Fuente: Coeficiente $c_p$ según Tabla N° 7 — Norma DIN 655.*")
-            
             st.write(f"- **Diámetro Mínimo Requerido ($D_{{p,calc}}$):** `{dp_teorico:.1f} mm`")
-
-            dp_adoptado = st.number_input(
-                "Adopto Diámetro Polea $D_p$ (mm):",
-                min_value=10.0,
-                value=float(round(dp_teorico, -1)),
-                step=10.0
-            )
+            dp_adoptado = st.number_input("Adopto Diámetro Polea $D_p$ (mm):", min_value=10.0, value=float(round(dp_teorico, -1)), step=10.0)
 
             if dp_adoptado < dp_teorico:
-                st.warning(f"⚠️ El diámetro ({dp_adoptado} mm) es menor al recomendado ({dp_teorico:.1f} mm). Reducirá la vida útil del cable.")
+                st.warning(f"⚠️ El diámetro ({dp_adoptado} mm) es menor al recomendado.")
             else:
                 st.success("✅ Diámetro de polea verificado.")
 
         with col_p2:
             st.markdown("#### Polea Compensadora")
-            cpc_adoptado = st.number_input(
-                "Adopto Coeficiente $c_{{pc}}$:", 
-                min_value=1.0, 
-                value=float(c_data["cpc_min"]), 
-                step=1.0
-            )
+            cpc_adoptado = st.number_input("Adopto Coeficiente $c_{{pc}}$:", min_value=1.0, value=float(c_data["cpc_min"]), step=1.0)
             st.caption("📖 *Fuente: Coeficiente $c_{pc}$ según Tabla N° 7 — Norma DIN 655.*")
-            
             st.write(f"- **Diámetro Mínimo Requerido ($D_{{pc,calc}}$):** `{dpc_teorico:.1f} mm`")
-
-            dpc_adoptado = st.number_input(
-                "Adopto Diámetro Polea Comp. $D_{{pc}}$ (mm):",
-                min_value=10.0,
-                value=float(round(dpc_teorico, -1)),
-                step=10.0
-            )
+            dpc_adoptado = st.number_input("Adopto Diámetro Polea Comp. $D_{{pc}}$ (mm):", min_value=10.0, value=float(round(dpc_teorico, -1)), step=10.0)
 
             if dpc_adoptado < dpc_teorico:
-                st.warning(f"⚠️ El diámetro compensador ({dpc_adoptado} mm) es inferior al mínimo normativo ({dpc_teorico:.1f} mm).")
+                st.warning(f"⚠️ El diámetro compensador ({dpc_adoptado} mm) es inferior al mínimo normativo.")
             else:
                 st.success("✅ Diámetro compensador verificado.")
 
         st.divider()
         st.markdown("#### Geometría de Garganta y Carga Resultante sobre el Eje")
-        
         col_pr1, col_pr2 = st.columns(2)
         with col_pr1:
-            angulo_abrazo = st.slider(
-                "Ángulo de abrazo del cable en la polea de reenvío (α) [°]",
-                min_value=30, max_value=180, value=180, step=5
-            )
+            angulo_abrazo = st.slider("Ángulo de abrazo del cable en la polea de reenvío (α) [°]", min_value=30, max_value=180, value=180, step=5)
             fuerza_resultante_eje = 2.0 * c_data["s_ramal"] * math.sin(math.radians(angulo_abrazo / 2.0))
             st.metric(label="Carga Resultante Radial en el Eje/Rodamiento:", value=f"{fuerza_resultante_eje:,.1f} kgf")
             st.caption("📖 *Fuente: Cálculo estático vectorial de esfuerzos radiales sobre soportes/ejes.*")
@@ -412,11 +355,9 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         l10_mill = (cap_c / carga_p) ** p_exp
         l10_horas = (10**6 / (60 * rpm)) * l10_mill
         
-        # Cálculo de vida útil en años
         horas_anuales = horas_dia * dias_ano
         anos_util = l10_horas / horas_anuales if horas_anuales > 0 else 0
 
-        # Visualización de métricas
         m1, m2 = st.columns(2)
         with m1:
             st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
@@ -428,3 +369,136 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.markdown(f"* **Régimen considerado:** {horas_dia:.0f} hs/día × {dias_ano} días/año = {horas_anuales:,.0f} hs/año.")
 
     st.caption("📖 *Fuente de referencia: Norma Internacional ISO 281 (Cálculo de capacidad de carga dinámica y vida nominal de rodamientos).*")
+
+# ==============================================================================
+# MÓDULO 3: VIGAS COMBINADAS Y MÓDULO RESISTENTE (TEOREMA DE STEINER)
+# ==============================================================================
+elif modulo == "📐 Módulo 3: Vigas Combinadas y Módulo Resistente (Steiner)":
+    st.header("📐 Cálculo del Módulo Resistente ($W$) en Vigas Simples y Combinadas")
+    st.markdown("Determinación del baricentro compuesto, momentos de inercia y módulos resistentes a flexión ($W_x$, $W_y$) aplicando el **Teorema de Steiner**.")
+
+    # BD Reducida de Perfiles Estándar (DIN 1025 / DIN 1026) en cm, cm2, cm4
+    cat_ipn = {
+        "IPN 160": {"h": 16.0, "b": 7.4, "area": 22.8, "ix": 935.0, "iy": 54.7},
+        "IPN 200": {"h": 20.0, "b": 9.0, "area": 33.4, "ix": 2140.0, "iy": 117.0},
+        "IPN 240": {"h": 24.0, "b": 10.6, "area": 46.1, "ix": 4250.0, "iy": 221.0},
+        "IPN 300": {"h": 30.0, "b": 12.5, "area": 69.0, "ix": 9800.0, "iy": 451.0},
+        "IPN 400": {"h": 40.0, "b": 15.5, "area": 118.0, "ix": 29210.0, "iy": 1050.0}
+    }
+
+    cat_upn = {
+        "UPN 160": {"h": 16.0, "b": 6.5, "area": 24.0, "ix": 925.0, "iy": 85.3, "ey": 1.84},
+        "UPN 200": {"h": 20.0, "b": 7.5, "area": 32.2, "ix": 1910.0, "iy": 148.0, "ey": 2.01},
+        "UPN 240": {"h": 24.0, "b": 8.5, "area": 42.3, "ix": 3600.0, "iy": 248.0, "ey": 2.23},
+        "UPN 300": {"h": 30.0, "b": 10.0, "area": 58.8, "ix": 8030.0, "iy": 495.0, "ey": 2.70}
+    }
+
+    config_viga = st.selectbox(
+        "Seleccioná la Configuración Estructural:",
+        [
+            "1. Perfil Único (IPN o UPN)",
+            "2. Viga Carril Compuesta: IPN + UPN Solapado en Ala Superior",
+            "3. Perfil Doble UPN Unido por Almas (Perfil Cajón)"
+        ]
+    )
+    st.caption("📖 *Fuente: Geometrías y propiedades mecánicas extraídas de tablas de perfiles laminados DIN 1025 / DIN 1026.*")
+
+    col_inp, col_out = st.columns([1, 1])
+
+    with col_inp:
+        st.subheader("⚙️ Selección de Perfiles")
+        
+        if config_viga == "1. Perfil Único (IPN o UPN)":
+            tipo_p = st.radio("Tipo de Perfil:", ["IPN", "UPN"])
+            prof_name = st.selectbox("Designación Comercial:", list(cat_ipn.keys()) if tipo_p == "IPN" else list(cat_upn.keys()))
+            
+            p_sel = cat_ipn[prof_name] if tipo_p == "IPN" else cat_upn[prof_name]
+            h_tot = p_sel["h"]
+            area_tot = p_sel["area"]
+            ix_tot = p_sel["ix"]
+            iy_tot = p_sel["iy"]
+            y_g = h_tot / 2.0
+            
+            wx_inf = ix_tot / y_g
+            wx_sup = wx_inf
+
+        elif config_viga == "2. Viga Carril Compuesta: IPN + UPN Solapado en Ala Superior":
+            st.info("💡 Configuración estándar en puentes grúa: El UPN se suelda 'acostado' sobre el ala superior del IPN.")
+            ipn_name = st.selectbox("Perfil Principal Inferior (IPN):", list(cat_ipn.keys()), index=2)
+            upn_name = st.selectbox("Perfil Refuerzo Superior (UPN):", list(cat_upn.keys()), index=1)
+
+            p_ipn = cat_ipn[ipn_name]
+            p_upn = cat_upn[upn_name]
+
+            # Referencia de alturas respecto a la base del IPN
+            y_ipn = p_ipn["h"] / 2.0
+            # Al estar acostado el UPN, su altura agregada es su espesor b_upn
+            y_upn = p_ipn["h"] + (p_upn["ey"]) # Centroide del UPN respecto a la base del IPN
+
+            area_tot = p_ipn["area"] + p_upn["area"]
+            
+            # Baricentro compuesto respecto a la base del IPN
+            y_g = ((p_ipn["area"] * y_ipn) + (p_upn["area"] * y_upn)) / area_tot
+
+            # Steiner respecto a eje X
+            # Para el UPN acostado, su inercia respecto a su eje paralelo a X es iy_upn
+            ix_tot = (p_ipn["ix"] + p_ipn["area"] * (y_ipn - y_g)**2) + (p_upn["iy"] + p_upn["area"] * (y_upn - y_g)**2)
+            
+            # Inercia respecto al eje vertical Y
+            iy_tot = p_ipn["iy"] + p_upn["ix"]
+
+            h_tot = p_ipn["h"] + p_upn["b"] # Altura total del conjunto
+            y_max_sup = h_tot - y_g
+            y_max_inf = y_g
+
+            wx_inf = ix_tot / y_max_inf
+            wx_sup = ix_tot / y_max_sup
+
+        elif config_viga == "3. Perfil Doble UPN Unido por Almas (Perfil Cajón)":
+            upn_name = st.selectbox("Perfil UPN Seleccionado:", list(cat_upn.keys()), index=1)
+            p_upn = cat_upn[upn_name]
+
+            h_tot = p_upn["h"]
+            area_tot = 2 * p_upn["area"]
+            ix_tot = 2 * p_upn["ix"]
+            
+            # Steiner para Y si están separados o unidos por almas
+            d_almas = st.number_input("Distancia entre almas (cm):", min_value=0.0, value=0.0, step=0.5)
+            y_upn_dist = p_upn["ey"] + (d_almas / 2.0)
+            iy_tot = 2 * (p_upn["iy"] + p_upn["area"] * (y_upn_dist)**2)
+
+            y_g = h_tot / 2.0
+            wx_inf = ix_tot / y_g
+            wx_sup = wx_inf
+
+    with col_out:
+        st.subheader("📊 Resultados Geométricos y Resistentes")
+
+        st.markdown(f"""
+        * **Área Total del Conjunto ($A$):** `{area_tot:.2f} cm²`
+        * **Altura Total ($H_{{tot}}$):** `{h_tot:.2f} cm`
+        * **Posición del Baricentro ($Y_G$ desde la base):** `{y_g:.2f} cm`
+        """)
+        st.caption("📖 *Fuente: Cálculo baricéntrico por momentos de superficie $Y_G = \\frac{\\sum A_i \\cdot y_i}{\\sum A_i}$.*")
+
+        st.divider()
+
+        st.markdown(f"""
+        #### Momentos de Inercia Totales (Steiner)
+        * **Inercia respecto al eje X ($I_{{x,tot}}$):** **`{ix_tot:,.1f} cm⁴`**
+        * **Inercia respecto al eje Y ($I_{{y,tot}}$):** **`{iy_tot:,.1f} cm⁴`**
+        """)
+        st.caption("📖 *Fuente: Aplicación del Teorema de Steiner $I = I_0 + A \\cdot d^2$.*")
+
+        st.divider()
+
+        st.markdown(f"""
+        #### Módulos Resistentes a Flexión ($W$)
+        * **Módulo Resistente Inferior ($W_{{x,inf}}$):** **`{wx_inf:,.1f} cm³`**
+        * **Módulo Resistente Superior ($W_{{x,sup}}$):** **`{wx_sup:,.1f} cm³`**
+        * **Módulo Resistente respecto a Y ($W_y$):** **`{(iy_tot / (max(p_sel['b'], p_sel['h']) if config_viga=='1. Perfil Único (IPN o UPN)' else h_tot/2)):,.1f} cm³`**
+        """)
+        st.caption("📖 *Fuente: Módulo resistente $W = \\frac{I}{y_{max}}$ a fibra extrema.*")
+
+    st.markdown("---")
+    st.caption("📖 *Referencias normativas del módulo: DIN 1025 / DIN 1026 y Métodos Clásicos de Resistencias de Materiales.*")

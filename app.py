@@ -401,8 +401,6 @@ elif "Módulo 3" in modulo:
                     key="ubicacion_contacto_select"
                 )
 
-                st.caption("ℹ️ **Nota técnica:** Tanto el gráfico como los cálculos de inercias (Teorema de Steiner) consideran el acoplamiento físico real **al ras** de los perfiles (simulando la posición de soldadura), en lugar de superponer centros de gravedad ideales.")
-
                 h1, b1 = p1["h"], p1["b"]
                 rad_p2 = math.radians(rot_p2)
                 cos_r, sin_r = math.cos(rad_p2), math.sin(rad_p2)
@@ -505,6 +503,14 @@ elif "Módulo 3" in modulo:
         st.subheader("📂 Importación de Geometría DXF General (Cualquier Figura)")
         archivo_dxf = st.file_uploader("Sube tu archivo DXF en milímetros", type=["dxf"])
         
+        # Nota importante para el usuario sobre capas y elementos de texto/cotas
+        st.info(
+            "💡 **Recomendación para el diseño en CAD:**\n"
+            "• Asegúrate de dibujar **únicamente** los perfiles y caños de interés.\n"
+            "• **Evita incluir textos, cotas (dimensiones) o líneas de ejes auxiliares** en la misma capa del dibujo, ya que el motor las interpreta como contornos cerrados.\n"
+            "• Si tu archivo contiene múltiples elementos, se recomienda colocar las piezas estructurales en una capa exclusiva."
+        )
+        
         try:
             import shapely
             from shapely.geometry import Polygon, LineString, Point
@@ -521,10 +527,26 @@ elif "Módulo 3" in modulo:
                 doc = ezdxf.readfile("temp_dxf.dxf")
                 msp = doc.modelspace()
                 
+                # Opcional: Filtro por capa si el usuario desea especificar una capa concreta
+                capas_disponibles = sorted(list(set(e.dxf.layer for e in msp if e.dxftype() in ['LINE', 'LWPOLYLINE', 'POLYLINE', 'CIRCLE', 'ARC'])))
+                
+                capa_seleccionada = None
+                if len(capas_disponibles) > 1:
+                    capa_seleccionada = st.selectbox("Selecciona la capa DXF que contiene los perfiles estructurales:", ["Todas las capas (Por defecto)"] + capas_disponibles)
+
                 lineas_segmentos = []
 
                 for entity in msp:
                     dxftype = entity.dxftype()
+
+                    # Ignorar explícitamente textos, mtexts y dimensiones
+                    if dxftype in ['TEXT', 'MTEXT', 'DIMENSION', 'POINT', 'HATCH']:
+                        continue
+
+                    # Filtrar por capa si el usuario seleccionó una específica
+                    if capa_seleccionada and capa_seleccionada != "Todas las capas (Por defecto)":
+                        if entity.dxf.layer != capa_seleccionada:
+                            continue
 
                     if dxftype == 'LINE':
                         p1 = (entity.dxf.start.x, entity.dxf.start.y)

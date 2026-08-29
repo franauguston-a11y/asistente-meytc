@@ -276,11 +276,10 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (POSICIONAMIENTO CON ST.FORM RÁPIDO Y FLUIDO)
+# MÓDULO 3: VIGAS COMBINADAS (LAYOUT OPTIMIZADO LADO A LADO)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
-    st.markdown("Ajustá las coordenadas y el ángulo en el panel y presioná **Actualizar Gráfico** para un recálculo fluido.")
 
     cat_ipn = {
         "IPN 160": {"h": 16.0, "b": 7.4, "tw": 0.63, "tf": 0.95, "area": 22.8, "ix": 935.0, "iy": 54.7, "ey": 0.0},
@@ -297,34 +296,46 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8, "ix": 8030.0, "iy": 495.0, "ey": 2.70}
     }
 
-    col_ctrl, col_vis = st.columns([1.1, 1.2])
+    # CREAMOS 2 COLUMNAS PRINCIPALES: CONTROLES A LA IZQ, GRÁFICO A LA DER
+    col_pantalla_izq, col_pantalla_der = st.columns([1.3, 1.0])
 
-    with col_ctrl:
-        st.subheader("1. Viga Base (Perfil Principal 1)")
-        tipo_p1 = st.selectbox("Tipo Perfil Base:", ["IPN", "UPN"], index=0)
-        prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=2)
-        p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
+    with col_pantalla_izq:
+        # DENTRO DE LA COLUMNA IZQUIERDA, CREAMOS DOS SUBCOLUMNAS PARA PERFIL 1 Y PERFIL 2
+        col_p1, col_p2 = st.columns(2)
 
-        x1_c, y1_c = 0.0, p1["h"] / 2.0
-        rot_p1 = 0
-        ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
+        with col_p1:
+            st.subheader("1. Perfil Base (P1)")
+            tipo_p1 = st.selectbox("Tipo Perfil Base:", ["IPN", "UPN"], index=0, key="tipo_p1")
+            prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=2, key="prof1_name")
+            p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
 
-        st.divider()
-        st.subheader("2. Perfil Secundario / Refuerzo (Perfil 2)")
-        agregar_p2 = st.checkbox("¿Agregar segundo perfil?", value=True)
+            x1_c, y1_c = 0.0, p1["h"] / 2.0
+            rot_p1 = 0
+            ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
 
+        with col_p2:
+            st.subheader("2. Refuerzo (P2)")
+            agregar_p2 = st.checkbox("¿Agregar perfil 2?", value=True, key="agregar_p2")
+
+            if agregar_p2:
+                tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1, key="tipo_p2")
+                prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=1, key="prof2_name")
+                p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
+            else:
+                p2 = None
+
+        st.markdown("---")
+
+        # FORMULARIO CON LOS SLIDERS LADO A LADO CON EL GRÁFICO
         if agregar_p2:
-            tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1)
-            prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=1)
-            p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
-
-            with st.form("form_posicionamiento"):
-                st.markdown("#### 🎯 Control de Posición y Rotación")
-                rot_p2 = st.slider("Rotación Perfil 2 (Ángulo 0° a 360°):", min_value=0, max_value=360, value=90, step=5)
+            with st.form("form_posicionamiento_horizontal"):
+                st.subheader("🎯 Posicionamiento y Rotación de P2")
+                
+                rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=5)
                 x2_c = st.slider("Posición Centro X2 (cm):", min_value=-20.0, max_value=20.0, value=0.0, step=0.5)
                 y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-10.0, max_value=40.0, value=float(p1["h"] + 2.0), step=0.5)
                 
-                btn_actualizar = st.form_submit_button("🔄 Actualizar Gráfico y Cálculos", type="primary")
+                btn_actualizar = st.form_submit_button("🔄 Actualizar Gráfico", type="primary", use_container_width=True)
 
             a2 = p2["area"]
             rad_p2 = math.radians(rot_p2)
@@ -336,6 +347,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         else:
             a2, x2_c, y2_c, ix2_local, iy2_local, rot_p2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0
 
+    # CÁLCULOS BARICENTRO E INERCIAS
     area_tot = a1 + a2
     xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
     yg_comp = ((a1 * y1_c) + (a2 * y2_c)) / area_tot
@@ -367,10 +379,11 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         
         return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
-    with col_vis:
+    # COLUMNA DERECHA: GRÁFICO INMEDIATAMENTE AL LADO
+    with col_pantalla_der:
         st.subheader("🖼️ Sección Compuesta Real")
 
-        fig, ax = plt.subplots(figsize=(6, 6))
+        fig, ax = plt.subplots(figsize=(5.5, 5.5))
 
         verts_p1 = obtener_poligono_perfil(tipo_p1, p1, x1_c, y1_c, rot_p1)
         poly1 = patches.Polygon(verts_p1, closed=True, color='navy', alpha=0.75, edgecolor='black', lw=1.2, label=f"P1: {prof1_name}")
@@ -394,12 +407,12 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         ax.set_aspect('equal', adjustable='box')
         ax.set_xlabel("X [cm]")
         ax.set_ylabel("Y [cm]")
-        ax.set_title("Corte Transversal", fontsize=11, fontweight='bold')
         ax.grid(True, linestyle='--', alpha=0.5)
         ax.legend(loc='upper right', fontsize=8)
 
         st.pyplot(fig)
 
+    # RESULTADOS MÓDULOS RESISTENTES (Debajo en todo el ancho)
     d_sup = max(all_y) - yg_comp
     d_inf = yg_comp - min(all_y)
     d_der = max(all_x) - xg_comp

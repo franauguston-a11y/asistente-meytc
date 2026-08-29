@@ -275,378 +275,165 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
-# ==============================================================================
+# =====================================================================
 # MÓDULO 3: VIGAS COMBINADAS, CATÁLOGOS Y PERFIL PERSONALIZADO (DXF EN MM)
-# ==============================================================================
-elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
-    st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
+# =====================================================================
+elif modulo == " Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner):":
+    st.header(" Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
 
-    # Intentamos importar ezdxf de forma segura para la lectura de archivos DXF
+    # Intentamos importar dependencias de forma segura
     try:
         import ezdxf
+        import matplotlib.pyplot as plt
         DXF_DISPONIBLE = True
     except ImportError:
         DXF_DISPONIBLE = False
 
     # CATÁLOGOS COMERCIALES (IPN / UPN)
     cat_ipn = {
-        "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
-        "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
-        "IPN 120": {"h": 12.0, "b": 5.8,  "tw": 0.51, "tf": 0.77, "area": 14.2,  "ix": 328.0,  "iy": 21.5,  "ey": 0.0},
-        "IPN 140": {"h": 14.0, "b": 6.6,  "tw": 0.57, "tf": 0.86, "area": 18.3,  "ix": 573.0,  "iy": 35.2,  "ey": 0.0},
-        "IPN 160": {"h": 16.0, "b": 7.4,  "tw": 0.63, "tf": 0.95, "area": 22.8,  "ix": 935.0,  "iy": 54.7,  "ey": 0.0},
-        "IPN 180": {"h": 18.0, "b": 8.2,  "tw": 0.69, "tf": 1.04, "area": 27.9,  "ix": 1450.0, "iy": 81.3,  "ey": 0.0},
-        "IPN 200": {"h": 20.0, "b": 9.0,  "tw": 0.75, "tf": 1.13, "area": 33.4,  "ix": 2140.0, "iy": 117.0,  "ey": 0.0},
-        "IPN 220": {"h": 22.0, "b": 9.8,  "tw": 0.81, "tf": 1.22, "area": 39.5,  "ix": 3060.0, "iy": 162.0,  "ey": 0.0},
-        "IPN 240": {"h": 24.0, "b": 10.6, "tw": 0.87, "tf": 1.31, "area": 46.1,  "ix": 4250.0, "iy": 221.0,  "ey": 0.0},
-        "IPN 260": {"h": 26.0, "b": 11.3, "tw": 0.94, "tf": 1.41, "area": 53.4,  "ix": 5740.0, "iy": 288.0,  "ey": 0.0},
-        "IPN 300": {"h": 30.0, "b": 12.5, "tw": 1.08, "tf": 1.62, "area": 69.0,  "ix": 9800.0, "iy": 451.0,  "ey": 0.0},
-        "IPN 340": {"h": 34.0, "b": 13.7, "tw": 1.22, "tf": 1.83, "area": 86.8,  "ix": 15700.0, "iy": 680.0,  "ey": 0.0},
-        "IPN 400": {"h": 40.0, "b": 15.5, "tw": 1.44, "tf": 2.16, "area": 118.0, "ix": 29210.0, "iy": 1050.0, "ey": 0.0},
-        "IPN 450": {"h": 45.0, "b": 17.0, "tw": 1.62, "tf": 2.43, "area": 147.0, "ix": 44900.0, "iy": 1510.0, "ey": 0.0},
-        "IPN 500": {"h": 50.0, "b": 18.5, "tw": 1.80, "tf": 2.70, "area": 179.0, "ix": 66700.0, "iy": 2140.0, "ey": 0.0}
+        "IPN 80": {"h": 8.0, "b": 4.2, "tw": 0.39, "tf": 0.59, "area": 7.58, "ix": 77.8, "iy": 6.29, "ey": 0.0},
+        "IPN 100": {"h": 10.0, "b": 5.0, "tw": 0.45, "tf": 0.68, "area": 10.6, "ix": 171.0, "iy": 12.2, "ey": 0.0},
+        "IPN 120": {"h": 12.0, "b": 5.8, "tw": 0.51, "tf": 0.77, "area": 14.2, "ix": 328.0, "iy": 21.5, "ey": 0.0},
+        "IPN 140": {"h": 14.0, "b": 6.6, "tw": 0.57, "tf": 0.86, "area": 18.3, "ix": 573.0, "iy": 35.2, "ey": 0.0},
+        "IPN 160": {"h": 16.0, "b": 7.4, "tw": 0.63, "tf": 0.95, "area": 22.8, "ix": 935.0, "iy": 54.7, "ey": 0.0},
+        "IPN 180": {"h": 18.0, "b": 8.2, "tw": 0.69, "tf": 1.04, "area": 27.9, "ix": 1450.0, "iy": 81.3, "ey": 0.0},
+        "IPN 200": {"h": 20.0, "b": 9.0, "tw": 0.75, "tf": 1.13, "area": 33.4, "ix": 2140.0, "iy": 117.0, "ey": 0.0},
+        "IPN 220": {"h": 22.0, "b": 9.8, "tw": 0.81, "tf": 1.22, "area": 39.5, "ix": 3060.0, "iy": 162.0, "ey": 0.0},
+        "IPN 240": {"h": 24.0, "b": 10.6, "tw": 0.87, "tf": 1.31, "area": 46.1, "ix": 4250.0, "iy": 221.0, "ey": 0.0},
+        "IPN 260": {"h": 26.0, "b": 11.3, "tw": 0.94, "tf": 1.41, "area": 53.4, "ix": 5740.0, "iy": 288.0, "ey": 0.0},
+        "IPN 300": {"h": 30.0, "b": 12.5, "tw": 1.08, "tf": 1.62, "area": 69.0, "ix": 9800.0, "iy": 451.0, "ey": 0.0},
+        "IPN 340": {"h": 34.0, "b": 13.7, "tw": 1.22, "tf": 1.83, "area": 86.8, "ix": 15700.0, "iy": 680.0, "ey": 0.0},
+        "IPN 400": {"h": 40.0, "b": 15.5, "tw": 1.44, "tf": 2.16, "area": 118.0, "ix": 29210.0, "iy": 1050.0, "ey": 0.0}
     }
 
-    cat_upn = {
-        "UPN 80":  {"h": 8.0,  "b": 4.5,  "tw": 0.50, "tf": 0.80, "area": 11.0,  "ix": 106.0,  "iy": 19.4,  "ey": 1.35},
-        "UPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.55, "tf": 0.85, "area": 13.5,  "ix": 206.0,  "iy": 29.3,  "ey": 1.45},
-        "UPN 120": {"h": 12.0, "b": 5.5,  "tw": 0.60, "tf": 0.90, "area": 17.0,  "ix": 364.0,  "iy": 43.2,  "ey": 1.57},
-        "UPN 140": {"h": 14.0, "b": 6.0,  "tw": 0.70, "tf": 1.00, "area": 21.5,  "ix": 605.0,  "iy": 62.7,  "ey": 1.71},
-        "UPN 160": {"h": 16.0, "b": 6.5,  "tw": 0.75, "tf": 1.05, "area": 24.0,  "ix": 925.0,  "iy": 85.3,  "ey": 1.84},
-        "UPN 180": {"h": 18.0, "b": 7.0,  "tw": 0.80, "tf": 1.10, "area": 28.0,  "ix": 1350.0, "iy": 114.0, "ey": 1.93},
-        "UPN 200": {"h": 20.0, "b": 7.5,  "tw": 0.85, "tf": 1.15, "area": 32.2,  "ix": 1910.0, "iy": 148.0, "ey": 2.01},
-        "UPN 220": {"h": 22.0, "b": 8.0,  "tw": 0.90, "tf": 1.20, "area": 37.4,  "ix": 2690.0, "iy": 197.0, "ey": 2.13},
-        "UPN 240": {"h": 24.0, "b": 8.5, "tw": 0.95, "tf": 1.30, "area": 42.3,  "ix": 3600.0, "iy": 248.0, "ey": 2.23},
-        "UPN 260": {"h": 26.0, "b": 9.0,  "tw": 1.00, "tf": 1.40, "area": 48.3,  "ix": 4820.0, "iy": 317.0, "ey": 2.35},
-        "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8,  "ix": 8030.0, "iy": 495.0, "ey": 2.70},
-        "UPN 350": {"h": 35.0, "b": 10.5, "tw": 1.15, "tf": 1.60, "area": 77.3,  "ix": 12840.0, "iy": 606.0, "ey": 2.82},
-        "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
-    }
+    # Selector de origen de la geometría
+    tipo_entrada = st.radio("Seleccione el origen de la geometría:", ["Catálogos Comerciales (IPN/UPN)", "Cargar Archivo DXF Personalizado"])
 
-    # FUNCIONES DE CÁLCULO GEOMÉTRICO (Shoelace)
-    def calcular_propiedades_poligono(verts):
-        n = len(verts)
-        if n < 3:
-            return None, 0, 0, 0, 0, 0
-
-        if verts[0] != verts[-1]:
-            verts = verts + [verts[0]]
-            n = len(verts)
-
-        area = 0.0
-        cx = 0.0
-        cy = 0.0
-        ix = 0.0
-        iy = 0.0
-
-        for i in range(n - 1):
-            xi, yi = verts[i]
-            xi1, yi1 = verts[i+1]
-            cross = (xi * yi1 - xi1 * yi)
-            area += cross
-            cx += (xi + xi1) * cross
-            cy += (yi + yi1) * cross
-
-        area = area / 2.0
-        if abs(area) < 1e-6:
-            return None, 0, 0, 0, 0, 0
-
-        area = abs(area)
-        cx = cx / (6.0 * area)
-        cy = cy / (6.0 * area)
-
-        for i in range(n - 1):
-            xi, yi = verts[i]
-            xi1, yi1 = verts[i+1]
-            cross = (xi * yi1 - xi1 * yi)
-            x_i, y_i = xi - cx, yi - cy
-            x_ip1, y_ip1 = xi1 - cx, yi1 - cy
-
-            ix += (y_i**2 + y_i*y_ip1 + y_ip1**2) * cross
-            iy += (x_i**2 + x_i*x_ip1 + x_ip1*y_ip1) * cross
-
-        ix = abs(ix / 12.0)
-        iy = abs(iy / 12.0)
+    if tipo_entrada == "Cargar Archivo DXF Personalizado":
+        st.subheader("Importación de Geometría DXF")
+        archivo_dxf = st.file_uploader("Sube tu archivo DXF en milímetros", type=["dxf"])
         
-        return verts[:-1], area, cx, cy, ix, iy
-
-    def obtener_poligono_perfil(p_type, p_data, x_center, y_center, rot_deg):
-        h, b, tw, tf = p_data["h"], p_data["b"], p_data["tw"], p_data["tf"]
-        ey = p_data.get("ey", 0.0)
-
-        if p_type == "IPN":
-            verts = [
-                (-b/2, h/2), (b/2, h/2), (b/2, h/2 - tf), (tw/2, h/2 - tf),
-                (tw/2, -h/2 + tf), (b/2, -h/2 + tf), (b/2, -h/2), (-b/2, -h/2),
-                (-b/2, -h/2 + tf), (-tw/2, -h/2 + tf), (-tw/2, h/2 - tf), (-b/2, h/2 - tf)
-            ]
-        else:
-            x_back = -ey
-            x_web_in = -ey + tw
-            x_tip = b - ey
-            verts = [
-                (x_back, h/2), (x_tip, h/2), (x_tip, h/2 - tf), (x_web_in, h/2 - tf),
-                (x_web_in, -h/2 + tf), (x_tip, -h/2 + tf), (x_tip, -h/2), (x_back, -h/2)
-            ]
-
-        rad = math.radians(rot_deg)
-        cos_r, sin_r = math.cos(rad), math.sin(rad)
-        return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
-
-    # SELECCIÓN DE FUENTE DE DATOS
-    modo_fuente = st.radio(
-        "Seleccione el origen de la sección:",
-        ["Catálogo Comercial (IPN / UPN)", "📂 Perfil Personalizado (Subir DXF de AutoCAD en mm)"],
-        horizontal=True
-    )
-
-    col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
-
-    if modo_fuente == "📂 Perfil Personalizado (Subir DXF de AutoCAD en mm)":
-        with col_pantalla_izq:
-            st.markdown("### 1. Carga de Geometría CAD (DXF en mm)")
+        if archivo_dxf is not None and DXF_DISPONIBLE:
+            with open("temp_dxf.dxf", "wb") as f:
+                f.write(archivo_dxf.getbuffer())
             
-            archivo_subido = st.file_uploader("Suba el archivo del perfil diseñado:", type=["dxf"])
-            
-            with st.expander("ℹ️ Instrucciones para preparar y subir tu archivo DXF en milímetros"):
-                st.markdown("""
-                Para que el programa lea tu diseño mecánico correctamente:
-                1. **Polilínea Cerrada:** Dibuja el contorno de tu perfil usando el comando **`PLINE`**. Al terminar, escribe **`C`** (Cerrar) y presiona *Enter*. No uses líneas sueltas.
-                2. **Unidad Madre (mm):** Dibuja la pieza directamente en **milímetros** (por ejemplo, si el perfil tiene 200 mm de altura, dibújalo de 200 unidades).
-                3. **Sin elementos extraños:** Guarda el archivo DXF conteniendo **únicamente la polilínea del perfil**. Evita incluir cotas, ejes de referencia o textos flotantes.
-                4. **Versión de guardado:** Ve a *File > Save As* y selecciona **AutoCAD 2018 DXF** (o versiones 2013/2010).
-                """)
-            
-            verts_p1 = []
-            a1, ix1, iy1 = 0, 0, 0
-            x1_c, y1_c = 0, 0
-            
-            if archivo_subido is not None:
-                try:
-                    if DXF_DISPONIBLE:
-                        import tempfile
-                        import os
-
-                        # Creamos un archivo temporal en disco para evitar el error de bytes-like object
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.dxf') as tmp_file:
-                            tmp_file.write(archivo_subido.getvalue())
-                            tmp_path = tmp_file.name
-
-                        try:
-                            doc = ezdxf.readfile(tmp_path)
-                            msp = doc.modelspace()
-                            for entity in msp.query('LWPOLYLINE POLYLINE'):
-                                verts_p1 = [(v[0], v[1]) for v in entity.get_points('xy')]
-                                break 
-                        finally:
-                            if os.path.exists(tmp_path):
-                                os.unlink(tmp_path)
-
-                        if not verts_p1:
-                            st.error("No se encontró una polilínea válida en el archivo DXF.")
+            try:
+                doc = ezdxf.readfile("temp_dxf.dxf")
+                msp = doc.modelspace()
+                
+                poligonos = []
+                for entity in msp:
+                    if entity.dxftype() == 'LWPOLYLINE':
+                        puntos = [(p[0], p[1]) for p in entity.get_points()]
+                        if len(puntos) >= 3:
+                            if puntos[0] != puntos[-1]:
+                                puntos.append(puntos[0])
+                            poligonos.append(puntos)
+                
+                if poligonos:
+                    st.success(f"¡Se detectaron {len(poligonos)} contornos cerrados en el archivo DXF!")
+                    
+                    area_total = 0.0
+                    Qx_total = 0.0
+                    Qy_total = 0.0
+                    detalles_figuras = []
+                    
+                    for idx, poly in enumerate(poligonos):
+                        n = len(poly)
+                        A_i = 0.0
+                        Cx_i = 0.0
+                        Cy_i = 0.0
+                        Ix_local = 0.0
+                        Iy_local = 0.0
+                        
+                        for i in range(n - 1):
+                            x1, y1 = poly[i]
+                            x2, y2 = poly[i+1]
+                            cross = (x1 * y2 - x2 * y1)
+                            A_i += cross
+                            Cx_i += (x1 + x2) * cross
+                            Cy_i += (y1 + y2) * cross
+                            
+                        A_i = abs(A_i / 2.0)
+                        if A_i < 1e-6:
+                            continue
+                        Cx_i = Cx_i / (6.0 * A_i)
+                        Cy_i = Cy_i / (6.0 * A_i)
+                        
+                        for i in range(n - 1):
+                            x1, y1 = poly[i]
+                            x2, y2 = poly[i+1]
+                            cross = (x1 * y2 - x2 * y1)
+                            Ix_local += (y1**2 + y1*y2 + y2**2) * cross
+                            Iy_local += (x1**2 + x1*x2 + x2**2) * cross
+                            
+                        Ix_local = abs(Ix_local) / 12.0
+                        Iy_local = abs(Iy_local) / 12.0
+                        
+                        area_total += A_i
+                        Qx_total += A_i * Cy_i
+                        Qy_total += A_i * Cx_i
+                        
+                        detalles_figuras.append({
+                            'id': idx + 1, 'area': A_i, 'cx': Cx_i, 'cy': Cy_i,
+                            'ix_local': Ix_local, 'iy_local': Iy_local
+                        })
+                    
+                    if area_total > 0:
+                        XG = Qy_total / area_total
+                        YG = Qx_total / area_total
+                        
+                        Ix_total = 0.0
+                        Iy_total = 0.0
+                        y_max = -float('inf')
+                        y_min = float('inf')
+                        
+                        for fig in detalles_figuras:
+                            dx = fig['cx'] - XG
+                            dy = fig['cy'] - YG
+                            Ix_total += fig['ix_local'] + fig['area'] * (dy ** 2)
+                            Iy_total += fig['iy_local'] + fig['area'] * (dx ** 2)
+                        
+                        for poly in poligonos:
+                            for p in poly:
+                                if p[1] > y_max: y_max = p[1]
+                                if p[1] < y_min: y_min = p[1]
+                        
+                        dist_sup = max(abs(y_max - YG), 1e-5)
+                        dist_inf = max(abs(YG - y_min), 1e-5)
+                        Wx_sup = Ix_total / dist_sup
+                        Wx_inf = Ix_total / dist_inf
+                        
+                        st.markdown("### Resultados del Análisis Estructural (Steiner)")
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Área Total ($A$)", f"{area_total:.2f} mm²")
+                        col2.metric("Baricentro ($X_G, Y_G$)", f"({XG:.2f}, {YG:.2f}) mm")
+                        col3.metric("Inercia Global ($I_x$)", f"{Ix_total:.2e} mm⁴")
+                        
+                        col4, col5 = st.columns(2)
+                        col4.metric("Módulo Resistente Sup ($W_{x,sup}$)", f"{Wx_sup:.2f} mm³")
+                        col5.metric("Módulo Resistente Inf ($W_{x,inf}$)", f"{Wx_inf:.2f} mm³")
+                        
+                        st.markdown("### Visualización Gráfica 2D")
+                        fig, ax = plt.subplots(figsize=(6, 6))
+                        for poly in poligonos:
+                            xs = [p[0] for p in poly]
+                            ys = [p[1] for p in poly]
+                            ax.plot(xs, ys, marker='o', markersize=2)
+                            ax.fill(xs, ys, alpha=0.3)
+                        ax.plot(XG, YG, 'rx', markersize=10, label='Baricentro Global ($G$)')
+                        ax.set_aspect('equal')
+                        ax.set_xlabel('X (mm)')
+                        ax.set_ylabel('Y (mm)')
+                        ax.legend()
+                        st.pyplot(fig)
                     else:
-                        st.error("La librería 'ezdxf' no está instalada en el entorno.")
-
-                    if len(verts_p1) >= 3:
-                        _, a1, x1_bar, y1_bar, ix1, iy1 = calcular_propiedades_poligono(verts_p1)
-                        verts_p1 = [(v[0] - x1_bar, v[1] - y1_bar) for v in verts_p1]
-                        x1_c, y1_c = 0.0, 0.0
-                        st.success(f"¡Archivo leído con éxito! Área detectada: {a1:,.2f} mm²")
-                except Exception as e:
-                    st.error(f"Error al procesar el archivo DXF: {e}")
-
-            agregar_p2 = False
-
-        with col_pantalla_der:
-            st.markdown("### 👁️ Visualizador de Control (mm)")
-            fig, ax = plt.subplots(figsize=(5, 5))
-            if len(verts_p1) >= 3:
-                poly_custom = patches.Polygon(verts_p1, closed=True, color='darkorange', alpha=0.8, edgecolor='black', lw=1.5, label="Perfil Custom (mm)")
-                ax.add_patch(poly_custom)
-                ax.plot(0, 0, 'ro', markersize=6, label="Baricentro (0,0)")
-                
-                all_x = [v[0] for v in verts_p1]
-                all_y = [v[1] for v in verts_p1]
-                margin = max(max(all_x)-min(all_x), max(all_y)-min(all_y)) * 0.4 + 5
-                ax.set_xlim(-margin, margin)
-                ax.set_ylim(-margin, margin)
-            else:
-                ax.text(0, 0, "Esperando archivo DXF en mm...", ha='center', va='center', fontsize=11, color='gray')
-                ax.set_xlim(-50, 50)
-                ax.set_ylim(-50, 50)
-
-            ax.set_aspect('equal', adjustable='box')
-            ax.set_xlabel("X [mm]")
-            ax.set_ylabel("Y [mm]")
-            ax.grid(True, linestyle='--', alpha=0.5)
-            ax.legend(loc='upper right', fontsize=8)
-            st.pyplot(fig)
-
-        area_tot = a1
-        yg_comp, xg_comp = 0.0, 0.0
-        ix_tot, iy_tot = ix1, iy1
-        
-        if len(verts_p1) >= 3:
-            all_y = [v[1] for v in verts_p1]
-            all_x = [v[0] for v in verts_p1]
-            d_sup = max(all_y)
-            d_inf = abs(min(all_y))
-            d_der = max(all_x)
-            d_izq = abs(min(all_x))
-
-            wx_sup = ix_tot / d_sup if d_sup > 0 else 0
-            wx_inf = ix_tot / d_inf if d_inf > 0 else 0
-            wy_der = iy_tot / d_der if d_der > 0 else 0
-            wy_izq = iy_tot / d_izq if d_izq > 0 else 0
-        else:
-            wx_sup, wx_inf, wy_der, wy_izq = 0, 0, 0, 0
-
-        # PANEL DE RESULTADOS EN MM PARA PERFIL PERSONALIZADO
-        st.markdown("---")
-        st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
-
-        c_r1, c_r2, c_r3, c_r4 = st.columns(4)
-        with c_r1:
-            st.metric("Área Total (A):", f"{area_tot:,.1f} mm²")
-            st.metric("Baricentro Y_G:", f"{yg_comp:.1f} mm")
-        with c_r2:
-            st.metric("Inercia Ix Total:", f"{ix_tot:,.0f} mm⁴")
-            st.metric("Inercia Iy Total:", f"{iy_tot:,.0f} mm⁴")
-        with c_r3:
-            st.metric("Wx Superior:", f"{wx_sup:,.0f} mm³")
-            st.metric("Wx Inferior:", f"{wx_inf:,.0f} mm³")
-        with c_r4:
-            st.metric("Wy Derecho:", f"{wy_der:,.0f} mm³")
-            st.metric("Wy Izquierdo:", f"{wy_izq:,.0f} mm³")
-
+                        st.error("El área total calculada es igual a cero.")
+                else:
+                    st.warning("No se encontraron polilíneas cerradas válidas en el DXF.")
+            except Exception as e:
+                st.error(f"Error al procesar el archivo DXF: {e}")
+        elif archivo_dxf is not None and not DXF_DISPONIBLE:
+            st.error("La librería 'ezdxf' no está instalada en el entorno.")
     else:
-        # MODO CATÁLOGO COMERCIAL (P1 + P2)
-        with col_pantalla_izq:
-            col_p1, col_p2 = st.columns(2)
-
-            with col_p1:
-                st.markdown("### 1. Perfil Base (P1)")
-                tipo_p1 = st.selectbox("Tipo Perfil Base:", ["IPN", "UPN"], index=0, key="tipo_p1")
-                prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=4, key="prof1_name")
-                p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
-
-                x1_c, y1_c = 0.0, p1["h"] / 2.0
-                rot_p1 = 0
-                ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
-
-            with col_p2:
-                st.markdown("### 2. Refuerzo (P2)")
-                agregar_p2 = st.checkbox("¿Agregar perfil 2?", value=True, key="agregar_p2")
-
-                if agregar_p2:
-                    tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0, key="tipo_p2")
-                    lista_cat_p2 = cat_upn if tipo_p2 == "UPN" else cat_ipn
-                    prof2_name = st.selectbox("Designación Perfil 2:", list(lista_cat_p2.keys()), index=0, key="prof2_name")
-                    p2 = lista_cat_p2[prof2_name]
-                else:
-                    p2 = None
-
-            if agregar_p2:
-                st.markdown("#### 🔗 Posición de Soldadura / Contacto")
-                rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15, key="rot_p2_slider")
-                ubicacion_contacto = st.selectbox(
-                    "Ubicación del Perfil 2 respecto al Base:",
-                    [
-                        "Sobre el ala superior (Al ras)",
-                        "Debajo del ala inferior (Al ras)",
-                        "Lateral derecho (Contra el ala)",
-                        "Lateral izquierdo (Contra el ala)"
-                    ],
-                    key="ubicacion_contacto_select"
-                )
-
-                h1, b1 = p1["h"], p1["b"]
-                rad_p2 = math.radians(rot_p2)
-                cos_r, sin_r = math.cos(rad_p2), math.sin(rad_p2)
-                
-                verts_p2_local = obtener_poligono_perfil(tipo_p2, p2, 0.0, 0.0, rot_p2)
-                min_y_p2 = min(v[1] for v in verts_p2_local)
-                max_y_p2 = max(v[1] for v in verts_p2_local)
-                min_x_p2 = min(v[0] for v in verts_p2_local)
-                max_x_p2 = max(v[0] for v in verts_p2_local)
-
-                if ubicacion_contacto == "Sobre el ala superior (Al ras)":
-                    x2_c, y2_c = 0.0, h1 - min_y_p2
-                elif ubicacion_contacto == "Debajo del ala inferior (Al ras)":
-                    x2_c, y2_c = 0.0, -max_y_p2
-                elif ubicacion_contacto == "Lateral derecho (Contra el ala)":
-                    x2_c, y2_c = (b1 / 2.0) - min_x_p2, (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
-                else:
-                    x2_c, y2_c = (-b1 / 2.0) - max_x_p2, (h1 / 2.0) - ((min_y_p2 + max_y_p2) / 2.0)
-
-                a2 = p2["area"]
-                cos_a2, sin_a2 = cos_r ** 2, sin_r ** 2
-                ix2_local = p2["ix"] * cos_a2 + p2["iy"] * sin_a2
-                iy2_local = p2["ix"] * sin_a2 + p2["iy"] * cos_a2
-            else:
-                a2, x2_c, y2_c, ix2_local, iy2_local, rot_p2 = 0.0, 0.0, 0.0, 0.0, 0.0, 0
-
-        area_tot = a1 + a2
-        xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
-        yg_comp = ((a1 * y1_c) + (a2 * y2_c)) / area_tot
-
-        ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
-        iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
-
-        with col_pantalla_der:
-            st.markdown("### 🖼️ Sección Compuesta Real (Soldada)")
-            fig, ax = plt.subplots(figsize=(5, 5))
-
-            verts_p1_draw = obtener_poligono_perfil(tipo_p1, p1, x1_c, y1_c, rot_p1)
-            poly1 = patches.Polygon(verts_p1_draw, closed=True, color='navy', alpha=0.75, edgecolor='black', lw=1.2, label=f"P1: {prof1_name}")
-            ax.add_patch(poly1)
-
-            if agregar_p2:
-                verts_p2_draw = obtener_poligono_perfil(tipo_p2, p2, x2_c, y2_c, rot_p2)
-                poly2 = patches.Polygon(verts_p2_draw, closed=True, color='firebrick', alpha=0.75, edgecolor='black', lw=1.2, label=f"P2: {prof2_name} ({rot_p2}°)")
-                ax.add_patch(poly2)
-
-            ax.axhline(yg_comp, color='crimson', linestyle='--', linewidth=1.5, label=f'Eje Neutro X_G ({yg_comp:.2f} cm)')
-            ax.axvline(xg_comp, color='darkgreen', linestyle=':', linewidth=1.5, label=f'Eje Neutro Y_G ({xg_comp:.2f} cm)')
-            ax.plot(xg_comp, yg_comp, 'ro', markersize=8)
-
-            all_x = [v[0] for v in verts_p1_draw] + ([v[0] for v in verts_p2_draw] if agregar_p2 else [])
-            all_y = [v[1] for v in verts_p1_draw] + ([v[1] for v in verts_p2_draw] if agregar_p2 else [])
-            
-            margin = 6.0
-            ax.set_xlim(min(all_x) - margin, max(all_x) + margin)
-            ax.set_ylim(min(all_y) - margin, max(all_y) + margin)
-            ax.set_aspect('equal', adjustable='box')
-            ax.set_xlabel("X [cm]")
-            ax.set_ylabel("Y [cm]")
-            ax.grid(True, linestyle='--', alpha=0.5)
-            ax.legend(loc='upper right', fontsize=8)
-            st.pyplot(fig)
-
-        d_sup = max(all_y) - yg_comp
-        d_inf = yg_comp - min(all_y)
-        d_der = max(all_x) - xg_comp
-        d_izq = xg_comp - min(all_x)
-
-        wx_sup = ix_tot / d_sup if d_sup > 0 else 0
-        wx_inf = ix_tot / d_inf if d_inf > 0 else 0
-        wy_der = iy_tot / d_der if d_der > 0 else 0
-        wy_izq = iy_tot / d_izq if d_izq > 0 else 0
-
-        # PANEL DE RESULTADOS EN CM PARA CATÁLOGO
-        st.markdown("---")
-        st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
-
-        c_r1, c_r2, c_r3, c_r4 = st.columns(4)
-        with c_r1:
-            st.metric("Área Total (A):", f"{area_tot:.2f} cm²")
-            st.metric("Baricentro Y_G:", f"{yg_comp:.2f} cm")
-        with c_r2:
-            st.metric("Inercia Ix Total:", f"{ix_tot:,.1f} cm⁴")
-            st.metric("Inercia Iy Total:", f"{iy_tot:,.1f} cm⁴")
-        with c_r3:
-            st.metric("Wx Superior:", f"{wx_sup:,.1f} cm³")
-            st.metric("Wx Inferior:", f"{wx_inf:,.1f} cm³")
-        with c_r4:
-            st.metric("Wy Derecho:", f"{wy_der:,.1f} cm³")
-            st.metric("Wy Izquierdo:", f"{wy_izq:,.1f} cm³")
+        st.info("Seleccione una opción en el menú superior o cargue su archivo DXF personalizado para comenzar.")

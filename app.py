@@ -276,24 +276,45 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (LAYOUT CORREGIDO SIN ESPACIOS EXTRA)
+# MÓDULO 3: VIGAS COMBINADAS (CATÁLOGO COMPLETO Y SLIDER CADA 15°)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
 
+    # CATÁLOGO IPN COMPLETO (Desde IPN 80 hasta IPN 550/600)
     cat_ipn = {
-        "IPN 160": {"h": 16.0, "b": 7.4, "tw": 0.63, "tf": 0.95, "area": 22.8, "ix": 935.0, "iy": 54.7, "ey": 0.0},
-        "IPN 200": {"h": 20.0, "b": 9.0, "tw": 0.75, "tf": 1.13, "area": 33.4, "ix": 2140.0, "iy": 117.0, "ey": 0.0},
-        "IPN 240": {"h": 24.0, "b": 10.6, "tw": 0.87, "tf": 1.31, "area": 46.1, "ix": 4250.0, "iy": 221.0, "ey": 0.0},
-        "IPN 300": {"h": 30.0, "b": 12.5, "tw": 1.08, "tf": 1.62, "area": 69.0, "ix": 9800.0, "iy": 451.0, "ey": 0.0},
-        "IPN 400": {"h": 40.0, "b": 15.5, "tw": 1.44, "tf": 2.16, "area": 118.0, "ix": 29210.0, "iy": 1050.0, "ey": 0.0}
+        "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
+        "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
+        "IPN 120": {"h": 12.0, "b": 5.8,  "tw": 0.51, "tf": 0.77, "area": 14.2,  "ix": 328.0,  "iy": 21.5,  "ey": 0.0},
+        "IPN 140": {"h": 14.0, "b": 6.6, "tw": 0.57, "tf": 0.86, "area": 18.3,  "ix": 573.0,  "iy": 35.2,  "ey": 0.0},
+        "IPN 160": {"h": 16.0, "b": 7.4,  "tw": 0.63, "tf": 0.95, "area": 22.8,  "ix": 935.0,  "iy": 54.7,  "ey": 0.0},
+        "IPN 180": {"h": 18.0, "b": 8.2,  "tw": 0.69, "tf": 1.04, "area": 27.9,  "ix": 1450.0, "iy": 81.3,  "ey": 0.0},
+        "IPN 200": {"h": 20.0, "b": 9.0,  "tw": 0.75, "tf": 1.13, "area": 33.4,  "ix": 2140.0, "iy": 117.0,  "ey": 0.0},
+        "IPN 220": {"h": 22.0, "b": 9.8,  "tw": 0.81, "tf": 1.22, "area": 39.5,  "ix": 3060.0, "iy": 162.0,  "ey": 0.0},
+        "IPN 240": {"h": 24.0, "b": 10.6, "tw": 0.87, "tf": 1.31, "area": 46.1,  "ix": 4250.0, "iy": 221.0,  "ey": 0.0},
+        "IPN 260": {"h": 26.0, "b": 11.3, "tw": 0.94, "tf": 1.41, "area": 53.4,  "ix": 5740.0, "iy": 288.0,  "ey": 0.0},
+        "IPN 300": {"h": 30.0, "b": 12.5, "tw": 1.08, "tf": 1.62, "area": 69.0,  "ix": 9800.0, "iy": 451.0,  "ey": 0.0},
+        "IPN 340": {"h": 34.0, "b": 13.7, "tw": 1.22, "tf": 1.83, "area": 86.8,  "ix": 15700.0, "iy": 680.0,  "ey": 0.0},
+        "IPN 400": {"h": 40.0, "b": 15.5, "tw": 1.44, "tf": 2.16, "area": 118.0, "ix": 29210.0, "iy": 1050.0, "ey": 0.0},
+        "IPN 450": {"h": 45.0, "b": 17.0, "tw": 1.62, "tf": 2.43, "area": 147.0, "ix": 44900.0, "iy": 1510.0, "ey": 0.0},
+        "IPN 500": {"h": 50.0, "b": 18.5, "tw": 1.80, "tf": 2.70, "area": 179.0, "ix": 66700.0, "iy": 2140.0, "ey": 0.0}
     }
 
+    # CATÁLOGO UPN COMPLETO (Desde UPN 80 hasta UPN 400)
     cat_upn = {
-        "UPN 160": {"h": 16.0, "b": 6.5, "tw": 0.75, "tf": 1.05, "area": 24.0, "ix": 925.0, "iy": 85.3, "ey": 1.84},
-        "UPN 200": {"h": 20.0, "b": 7.5, "tw": 0.85, "tf": 1.15, "area": 32.2, "ix": 1910.0, "iy": 148.0, "ey": 2.01},
-        "UPN 240": {"h": 24.0, "b": 8.5, "tw": 0.95, "tf": 1.30, "area": 42.3, "ix": 3600.0, "iy": 248.0, "ey": 2.23},
-        "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8, "ix": 8030.0, "iy": 495.0, "ey": 2.70}
+        "UPN 80":  {"h": 8.0,  "b": 4.5,  "tw": 0.50, "tf": 0.80, "area": 11.0,  "ix": 106.0,  "iy": 19.4,  "ey": 1.35},
+        "UPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.55, "tf": 0.85, "area": 13.5,  "ix": 206.0,  "iy": 29.3,  "ey": 1.45},
+        "UPN 120": {"h": 12.0, "b": 5.5,  "tw": 0.60, "tf": 0.90, "area": 17.0,  "ix": 364.0,  "iy": 43.2,  "ey": 1.57},
+        "UPN 140": {"h": 14.0, "b": 6.0,  "tw": 0.70, "tf": 1.00, "area": 21.5,  "ix": 605.0,  "iy": 62.7,  "ey": 1.71},
+        "UPN 160": {"h": 16.0, "b": 6.5,  "tw": 0.75, "tf": 1.05, "area": 24.0,  "ix": 925.0,  "iy": 85.3,  "ey": 1.84},
+        "UPN 180": {"h": 18.0, "b": 7.0,  "tw": 0.80, "tf": 1.10, "area": 28.0,  "ix": 1350.0, "iy": 114.0, "ey": 1.93},
+        "UPN 200": {"h": 20.0, "b": 7.5,  "tw": 0.85, "tf": 1.15, "area": 32.2,  "ix": 1910.0, "iy": 148.0, "ey": 2.01},
+        "UPN 220": {"h": 22.0, "b": 8.0,  "tw": 0.90, "tf": 1.20, "area": 37.4,  "ix": 2690.0, "iy": 197.0,  "ey": 2.13},
+        "UPN 240": {"h": 24.0, "b": 8.5, "tw": 0.95, "tf": 1.30, "area": 42.3,  "ix": 3600.0, "iy": 248.0, "ey": 2.23},
+        "UPN 260": {"h": 26.0, "b": 9.0,  "tw": 1.00, "tf": 1.40, "area": 48.3,  "ix": 4820.0, "iy": 317.0,  "ey": 2.35},
+        "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8,  "ix": 8030.0, "iy": 495.0,  "ey": 2.70},
+        "UPN 350": {"h": 35.0, "b": 10.5, "tw": 1.15, "tf": 1.60, "area": 77.3,  "ix": 12840.0, "iy": 606.0, "ey": 2.82},
+        "UPN 400": {"h": 40.0, "b": 11.0, "tw": 1.22, "tf": 1.80, "area": 99.7,  "ix": 20260.0, "iy": 796.0, "ey": 2.94}
     }
 
     # DIVISIÓN PRINCIPAL: CONTROLES A LA IZQUIERDA (1.4), GRÁFICO A LA DERECHA (1.0)
@@ -306,7 +327,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         with col_p1:
             st.markdown("### 1. Perfil Base (P1)")
             tipo_p1 = st.selectbox("Tipo Perfil Base:", ["IPN", "UPN"], index=0, key="tipo_p1")
-            prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=2, key="prof1_name")
+            prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=4, key="prof1_name")
             p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
 
             x1_c, y1_c = 0.0, p1["h"] / 2.0
@@ -319,7 +340,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
 
             if agregar_p2:
                 tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=1, key="tipo_p2")
-                prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=1, key="prof2_name")
+                prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=6, key="prof2_name")
                 p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
             else:
                 p2 = None
@@ -329,14 +350,14 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
             with st.form("form_posicionamiento_compacto"):
                 st.markdown("#### 🎯 Posicionamiento y Rotación de P2")
                 
-                # Para ahorrar altura, ubicamos los sliders X e Y en dos columnas dentro del form
-                rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=5)
+                # SLIDER DE ROTACIÓN CADA 15 GRADOS
+                rot_p2 = st.slider("Rotación P2 (°):", min_value=0, max_value=360, value=90, step=15)
                 
                 col_sx, col_sy = st.columns(2)
                 with col_sx:
-                    x2_c = st.slider("Posición Centro X2 (cm):", min_value=-20.0, max_value=20.0, value=0.0, step=0.5)
+                    x2_c = st.slider("Posición Centro X2 (cm):", min_value=-25.0, max_value=25.0, value=0.0, step=0.5)
                 with col_sy:
-                    y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-10.0, max_value=40.0, value=float(p1["h"] + 2.0), step=0.5)
+                    y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-15.0, max_value=50.0, value=float(p1["h"] + 2.0), step=0.5)
                 
                 btn_actualizar = st.form_submit_button("🔄 Actualizar Gráfico", type="primary", use_container_width=True)
 
@@ -404,7 +425,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         all_x = [v[0] for v in verts_p1] + ([v[0] for v in verts_p2] if agregar_p2 else [])
         all_y = [v[1] for v in verts_p1] + ([v[1] for v in verts_p2] if agregar_p2 else [])
         
-        margin = 5.0
+        margin = 6.0
         ax.set_xlim(min(all_x) - margin, max(all_x) + margin)
         ax.set_ylim(min(all_y) - margin, max(all_y) + margin)
         ax.set_aspect('equal', adjustable='box')

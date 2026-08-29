@@ -276,11 +276,11 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS (CON RESTRICCIÓN DE CONTACTO FÍSICO / SOLDADURA)
+# MÓDULO 3: VIGAS COMBINADAS (POSICIONAMIENTO Y ROTACIÓN LIBRE DE 0° A 360°)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
-    st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Real de Perfiles")
-    st.markdown("Visualización geométrica exacta de perfiles **IPN** y **UPN** soldados con verificación de contacto físico.")
+    st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo de Perfiles")
+    st.markdown("Posicioná y rotá (0° a 360°) de manera continua el perfil secundario para evaluar la sección compuesta.")
 
     cat_ipn = {
         "IPN 160": {"h": 16.0, "b": 7.4, "tw": 0.63, "tf": 0.95, "area": 22.8, "ix": 935.0, "iy": 54.7, "ey": 0.0},
@@ -310,61 +310,29 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
 
         st.divider()
-        st.subheader("2. Perfil de Refuerzo Soldado (Perfil 2)")
-        agregar_p2 = st.checkbox("¿Agregar segundo perfil soldado?", value=True)
+        st.subheader("2. Perfil Secundario / Refuerzo (Perfil 2)")
+        agregar_p2 = st.checkbox("¿Agregar segundo perfil?", value=True)
 
         if agregar_p2:
             tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0)
             prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=1)
             p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
 
-            posicion_soldadura = st.radio(
-                "Ubicación de Soldadura (Restringida a Contacto Físico):",
-                [
-                    "Ala Superior (Viga Carril - UPN Acostado C invertida)",
-                    "Ala Superior (UPN o IPN derecho / centrado)",
-                    "Ala Inferior (Refuerzo inferior centrado)",
-                    "Alma Lateral Derecha (Apoyado sobre el ala P1)",
-                    "Desplazamiento a lo largo del Ala Superior (Ajuste X limitado)"
-                ]
-            )
-
-            if posicion_soldadura == "Ala Superior (Viga Carril - UPN Acostado C invertida)":
-                rot_p2 = 270 if tipo_p2 == "UPN" else 90
-                x2_c = 0.0
-                ey2 = p2["ey"] if tipo_p2 == "UPN" else p2["b"] / 2.0
-                y2_c = p1["h"] + ey2
-
-            elif posicion_soldadura == "Ala Superior (UPN o IPN derecho / centrado)":
-                rot_p2 = 0
-                x2_c = 0.0
-                y2_c = p1["h"] + (p2["h"] / 2.0)
-
-            elif posicion_soldadura == "Ala Inferior (Refuerzo inferior centrado)":
-                rot_p2 = 0
-                x2_c = 0.0
-                y2_c = -p2["h"] / 2.0
-
-            elif posicion_soldadura == "Alma Lateral Derecha (Apoyado sobre el ala P1)":
-                rot_p2 = 0
-                ey2 = p2["ey"] if tipo_p2 == "UPN" else p2["b"] / 2.0
-                x2_c = (p1["b"] / 2.0) + ey2
-                y2_c = p1["h"] / 2.0
-
-            elif posicion_soldadura == "Desplazamiento a lo largo del Ala Superior (Ajuste X limitado)":
-                rot_p2 = 270 if tipo_p2 == "UPN" else 90
-                ey2 = p2["ey"] if tipo_p2 == "UPN" else p2["b"] / 2.0
-                y2_c = p1["h"] + ey2
-                
-                max_x = max(0.0, (p1["b"] / 2.0) - (p2["h"] / 2.0 if rot_p2 in [90, 270] else p2["b"] / 2.0))
-                x2_c = st.slider("Desplazamiento Lateral X (cm):", min_value=-float(max_x), max_value=float(max_x), value=0.0, step=0.1)
+            st.markdown("#### 🎯 Posicionamiento y Rotación Continuos")
+            
+            rot_p2 = st.slider("Rotación Perfil 2 (Ángulo 0° a 360°):", min_value=0, max_value=360, value=90, step=5)
+            x2_c = st.slider("Posición Centro X2 (cm):", min_value=-25.0, max_value=25.0, value=0.0, step=0.5)
+            y2_c = st.slider("Posición Centro Y2 (cm):", min_value=-10.0, max_value=40.0, value=float(p1["h"] + 2.0), step=0.5)
 
             a2 = p2["area"]
 
-            if rot_p2 in [90, 270]:
-                ix2_local, iy2_local = p2["iy"], p2["ix"]
-            else:
-                ix2_local, iy2_local = p2["ix"], p2["iy"]
+            rad_p2 = math.radians(rot_p2)
+            cos_a2 = math.cos(rad_p2) ** 2
+            sin_a2 = math.sin(rad_p2) ** 2
+            
+            # Inercia respecto a los ejes globales rotados
+            ix2_local = p2["ix"] * cos_a2 + p2["iy"] * sin_a2
+            iy2_local = p2["ix"] * sin_a2 + p2["iy"] * cos_a2
         else:
             a2, x2_c, y2_c, ix2_local, iy2_local = 0.0, 0.0, 0.0, 0.0, 0.0
 
@@ -400,7 +368,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         return [(vx * cos_r - vy * sin_r + x_center, vx * sin_r + vy * cos_r + y_center) for vx, vy in verts]
 
     with col_vis:
-        st.subheader("🖼️ Sección Compuesta Real (Acoplamiento Físico Garantizado)")
+        st.subheader("🖼️ Sección Compuesta Real (Visualización Dinámica)")
 
         fig, ax = plt.subplots(figsize=(6, 6))
 
@@ -426,7 +394,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         ax.set_aspect('equal', adjustable='box')
         ax.set_xlabel("X [cm]")
         ax.set_ylabel("Y [cm]")
-        ax.set_title("Corte Transversal y Soldadura en Contacto Directo", fontsize=11, fontweight='bold')
+        ax.set_title("Corte Transversal", fontsize=11, fontweight='bold')
         ax.grid(True, linestyle='--', alpha=0.5)
         ax.legend(loc='upper right', fontsize=8)
 

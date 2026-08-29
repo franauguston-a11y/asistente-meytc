@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 # ==============================================================================
 # CONFIGURACIÓN GENERAL DE LA APLICACIÓN Y SIMULADOR
@@ -10,57 +11,24 @@ st.set_page_config(
 )
 
 st.title("⚙️ Plataforma de Cálculo, Simulación y Catálogos Comerciales (MEYTC)")
-st.caption("Proyecto de Beca de Investigación — Máquinas de Elevación y Transporte")
+st.caption("Proyecto de Beca de Investigación — Máquinas de Elevación y Transporte (UTN FRRe)")
 st.markdown("---")
 
-# Navegación lateral
+# Navegación lateral reducida
 modulo = st.sidebar.radio(
     "Navegación de Módulos:",
     [
-        "🧵 Módulo 1: Simulación Cables y Poleas",
-        "🛞 Módulo 2: Simulación Rodamientos (ISO 281)",
-        "⚙️ Módulo 3: Simulación Reductores",
-        "🔍 Buscador de Catálogos (IA)"
+        "🛞 Módulo 1: Simulación Rodamientos (ISO 281)",
+        "🔍 Módulo 2: Buscador de Catálogos (IA)"
     ]
 )
 
 # ==============================================================================
-# MÓDULO 1: SIMULACIÓN DE CABLES Y POLEAS
+# MÓDULO 1: SIMULACIÓN DE RODAMIENTOS
 # ==============================================================================
-if modulo == "🧵 Módulo 1: Simulación Cables y Poleas":
-    st.header("🧵 Simulación y Predimensionado de Cables de Acero y Poleas")
-    st.markdown("Simulación del comportamiento de rotura y dimensiones de arrollamiento según ISO 4301 / DIN 15061.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Variables de Simulación")
-        carga_swl = st.slider("Carga de Trabajo SWL (kN):", min_value=5.0, max_value=500.0, value=50.0, step=5.0)
-        grupo_fem = st.selectbox("Grupo de Mecanismo (FEM / ISO):", ["1Am (M4)", "2m (M5)", "3m (M6)", "4m (M7)"])
-        
-        zp_dict = {"1Am (M4)": 4.5, "2m (M5)": 5.0, "3m (M6)": 5.6, "4m (M7)": 6.3}
-        h1_dict = {"1Am (M4)": 18, "2m (M5)": 20, "3m (M6)": 22.4, "4m (M7)": 25}
-        
-        zp = zp_dict[grupo_fem]
-        h1 = h1_dict[grupo_fem]
-
-    with col2:
-        st.subheader("Resultados de la Simulación")
-        f_rotura_min = carga_swl * zp
-        st.metric(label="Carga de Rotura Mínima Requerida (F₀):", value=f"{f_rotura_min:.2f} kN")
-        
-        st.markdown(f"""
-        * **Coeficiente de seguridad aplicado ($Z_p$):** {zp}
-        * **Coeficiente de arrollamiento de polea ($h_1$):** {h1}
-        * **Diámetro mínimo de polea simulado ($D_p$):** $D_p \\ge {h1} \\cdot d$
-        """)
-        st.success(f"💡 Requisito: Filtrar en catálogo cables con $F_0 \\ge {f_rotura_min:.2f}\\text{{ kN}}$.")
-
-# ==============================================================================
-# MÓDULO 2: SIMULACIÓN DE RODAMIENTOS
-# ==============================================================================
-elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
+if modulo == "🛞 Módulo 1: Simulación Rodamientos (ISO 281)":
     st.header("🛞 Simulación de Vida Útil de Rodamientos ($L_{10h}$)")
-    st.markdown("Simulación de vida útil en función de cargas dinámicas y velocidad de operación.")
+    st.markdown("Simulación de vida útil nominal según ISO 281 en función de cargas dinámicas y velocidad de operación.")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -76,28 +44,14 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         l10_mill = (cap_c / carga_p) ** p_exp
         l10_horas = (10**6 / (60 * rpm)) * l10_mill
 
-        st.metric(label="Vida Útil Simulada L10h (Horas):", value=f"{l10_horas:,.0f} hs")
+        st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
         st.markdown(f"$$L_{{10}} = \\left( \\frac{{{cap_c}}}{{{carga_p}}} \\right)^{{{p_exp:.2f}}} = {l10_mill:.2f} \\text{{ millones de revoluciones}}$$")
+        st.markdown(f"$$L_{{10h}} = \\frac{{10^6}}{{60 \\cdot {rpm}}} \\cdot {l10_mill:.2f} = {l10_horas:,.0f} \\text{{ horas}}$$")
 
 # ==============================================================================
-# MÓDULO 3: SIMULACIÓN DE REDUCTORES
+# MÓDULO 2: BUSCADOR DE CATÁLOGOS CON IA (Multiparámetro Extendido)
 # ==============================================================================
-elif modulo == "⚙️ Módulo 3: Simulación Reductores":
-    st.header("⚙️ Simulación Cinemática de Transmisiones (SEW)")
-    st.markdown("Determinación del factor de reducción $i$ para acoplamiento motor-tambor.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        n_motor = st.number_input("Velocidad del Motor (rpm):", value=1450.0)
-        n_salida = st.slider("Velocidad Requerida en Tambor (rpm):", min_value=5.0, max_value=100.0, value=25.0)
-    with col2:
-        i_real = n_motor / n_salida
-        st.metric(label="Relación de Transmisión Simulada (i):", value=f"{i_real:.2f} : 1")
-
-# ==============================================================================
-# MÓDULO 4: BUSCADOR DE CATÁLOGOS CON IA (Multiparámetro Extendido)
-# ==============================================================================
-elif modulo == "🔍 Buscador de Catálogos (IA)":
+elif modulo == "🔍 Módulo 2: Buscador de Catálogos (IA)":
     st.header("🔍 Buscador Inteligente de Catálogos Comerciales")
     st.markdown("Asistente de selección de componentes técnicos con motor de análisis paramétrico de la cátedra.")
 
@@ -121,7 +75,7 @@ elif modulo == "🔍 Buscador de Catálogos (IA)":
         st.subheader("Consulta de Componente")
         query_cat = st.text_input(
             "¿Qué componente estás buscando?", 
-            placeholder="Ej: cable de acero 14mm anti-giratorio con alma de acero para ambiente corrosivo..."
+            placeholder="Ej: rodamiento SKF 50mm doble hilera para alta temperatura..."
         )
 
         if query_cat:
@@ -199,4 +153,14 @@ elif modulo == "🔍 Buscador de Catálogos (IA)":
                     st.markdown("* **Modelo:** **Polea DIN 15061 $D_p=400\\text{ mm}$**. Pág. 52.")
 
             else:
-                st.info("🔎 **Análisis paramétrico de la consulta:** Analizando atributos solicitados.")
+                st.info("🔎 **Análisis paramétrico de la consulta:** Procesando atributos ingresados...")
+
+    st.markdown("---")
+    st.subheader("📚 Vista Previa de Datos de Catálogo")
+    data_cables = {
+        "Modelo": ["IPH 6x36 WS+AA", "IPH 35x7 Anti-giratorio", "SKF 6210-2RS1"],
+        "Categoría": ["Cable", "Cable", "Rodamiento"],
+        "Atributo Principal": ["d = 14mm / F0 = 134kN", "d = 14mm / F0 = 152kN", "d = 50mm / D = 90mm"],
+        "Norma / Fabricante": ["DIN 3060 / IPH", "DIN 3069 / IPH", "ISO 281 / SKF"]
+    }
+    st.dataframe(pd.DataFrame(data_cables), use_container_width=True)

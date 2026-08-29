@@ -276,7 +276,7 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
         st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS, CATÁLOGOS Y PERFIL PERSONALIZADO (DXF)
+# MÓDULO 3: VIGAS COMBINADAS, CATÁLOGOS Y PERFIL PERSONALIZADO (DXF EN MM)
 # ==============================================================================
 elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
     st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Interactivo")
@@ -288,7 +288,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     except ImportError:
         DXF_DISPONIBLE = False
 
-    # CATÁLOGOS COMERCIALES (IPN / UPN)
+    # CATÁLOGOS COMERCIALES (IPN / UPN - Mantenidos en cm por norma de perfiles comerciales)
     cat_ipn = {
         "IPN 80":  {"h": 8.0,  "b": 4.2,  "tw": 0.39, "tf": 0.59, "area": 7.58,  "ix": 77.8,   "iy": 6.29,  "ey": 0.0},
         "IPN 100": {"h": 10.0, "b": 5.0,  "tw": 0.45, "tf": 0.68, "area": 10.6,  "ix": 171.0,  "iy": 12.2,  "ey": 0.0},
@@ -316,7 +316,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         "UPN 180": {"h": 18.0, "b": 7.0,  "tw": 0.80, "tf": 1.10, "area": 28.0,  "ix": 1350.0, "iy": 114.0, "ey": 1.93},
         "UPN 200": {"h": 20.0, "b": 7.5,  "tw": 0.85, "tf": 1.15, "area": 32.2,  "ix": 1910.0, "iy": 148.0, "ey": 2.01},
         "UPN 220": {"h": 22.0, "b": 8.0,  "tw": 0.90, "tf": 1.20, "area": 37.4,  "ix": 2690.0, "iy": 197.0, "ey": 2.13},
-        "UPN 240": {"h": 24.0, "b": 8.5,  "tw": 0.95, "tf": 1.30, "area": 42.3,  "ix": 3600.0, "iy": 248.0, "ey": 2.23},
+        "UPN 240": {"h": 24.0, "b": 8.5, "tw": 0.95, "tf": 1.30, "area": 42.3,  "ix": 3600.0, "iy": 248.0, "ey": 2.23},
         "UPN 260": {"h": 26.0, "b": 9.0,  "tw": 1.00, "tf": 1.40, "area": 48.3,  "ix": 4820.0, "iy": 317.0, "ey": 2.35},
         "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8,  "ix": 8030.0, "iy": 495.0, "ey": 2.70},
         "UPN 350": {"h": 35.0, "b": 10.5, "tw": 1.15, "tf": 1.60, "area": 77.3,  "ix": 12840.0, "iy": 606.0, "ey": 2.82},
@@ -396,28 +396,28 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
     # SELECCIÓN DE FUENTE DE DATOS
     modo_fuente = st.radio(
         "Seleccione el origen de la sección:",
-        ["Catálogo Comercial (IPN / UPN)", "📂 Perfil Personalizado (Subir DXF de AutoCAD)"],
+        ["Catálogo Comercial (IPN / UPN)", "📂 Perfil Personalizado (Subir DXF de AutoCAD en mm)"],
         horizontal=True
     )
 
     col_pantalla_izq, col_pantalla_der = st.columns([1.4, 1.0])
 
-    if modo_fuente == "📂 Perfil Personalizado (Subir DXF de AutoCAD)":
+    if modo_fuente == "📂 Perfil Personalizado (Subir DXF de AutoCAD en mm)":
         with col_pantalla_izq:
-            st.markdown("### 1. Carga de Geometría CAD (DXF)")
+            st.markdown("### 1. Carga de Geometría CAD (DXF en mm)")
             
             archivo_subido = st.file_uploader("Suba el archivo del perfil diseñado:", type=["dxf"])
             
-            # --- ACOTACIONES DE GUÍA PARA EL USUARIO DEBAJO DEL UPLOADER ---
-            with st.expander("ℹ️ Instrucciones para preparar y subir tu archivo DXF en AutoCAD"):
+            # --- ACOTACIONES ACTUALIZADAS A MILÍMETROS ---
+            with st.expander("ℹ️ Instrucciones para preparar y subir tu archivo DXF en milímetros"):
                 st.markdown("""
-                Para que el programa lea tu diseño correctamente sin errores de cálculo:
-                1. **Polilínea Cerrada:** Dibuja el contorno de tu perfil usando el comando **`PLINE`**. Al terminar el último vértice, escribe **`C`** (Cerrar) y presiona *Enter*. No utilices líneas sueltas.
-                2. **Escala Real:** Dibuja la pieza en **centímetros** (por ejemplo, si mide 20 cm de altura, dibújala de 20 unidades).
-                3. **Sin elementos extraños:** Guarda el archivo DXF conteniendo **únicamente la polilínea del perfil**. Evita incluir cotas, ejes de referencia o textos flotantes en el espacio modelo.
+                Para que el programa lea tu diseño mecánico correctamente:
+                1. **Polilínea Cerrada:** Dibuja el contorno de tu perfil usando el comando **`PLINE`**. Al terminar, escribe **`C`** (Cerrar) y presiona *Enter*. No uses líneas sueltas.
+                2. **Unidad Madre (mm):** Dibuja la pieza directamente en **milímetros** (por ejemplo, si el perfil tiene 200 mm de altura, dibújalo de 200 unidades).
+                3. **Sin elementos extraños:** Guarda el archivo DXF conteniendo **únicamente la polilínea del perfil**. Evita incluir cotas, ejes de referencia o textos flotantes.
                 4. **Versión de guardado:** Ve a *File > Save As* y selecciona **AutoCAD 2018 DXF** (o versiones 2013/2010).
                 """)
-            # -------------------------------------------------------------
+            # ---------------------------------------------
             
             verts_p1 = []
             a1, ix1, iy1 = 0, 0, 0
@@ -430,7 +430,7 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
                         msp = doc.modelspace()
                         for entity in msp.query('LWPOLYLINE POLYLINE'):
                             verts_p1 = [(v[0], v[1]) for v in entity.get_points('xy')]
-                            break # Toma la primera polilínea válida encontrada
+                            break 
                         
                         if not verts_p1:
                             st.error("No se encontró una polilínea válida en el archivo DXF.")
@@ -441,33 +441,33 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
                         _, a1, x1_bar, y1_bar, ix1, iy1 = calcular_propiedades_poligono(verts_p1)
                         verts_p1 = [(v[0] - x1_bar, v[1] - y1_bar) for v in verts_p1]
                         x1_c, y1_c = 0.0, 0.0
-                        st.success(f"¡Archivo leído con éxito! Área detectada: {a1:.2f} cm²")
+                        st.success(f"¡Archivo leído con éxito! Área detectada: {a1:,.2f} mm²")
                 except Exception as e:
                     st.error(f"Error al procesar el archivo DXF: {e}")
 
             agregar_p2 = False
 
         with col_pantalla_der:
-            st.markdown("### 👁️ Visualizador de Control (CAD)")
+            st.markdown("### 👁️ Visualizador de Control (mm)")
             fig, ax = plt.subplots(figsize=(5, 5))
             if len(verts_p1) >= 3:
-                poly_custom = patches.Polygon(verts_p1, closed=True, color='darkorange', alpha=0.8, edgecolor='black', lw=1.5, label="Perfil Custom")
+                poly_custom = patches.Polygon(verts_p1, closed=True, color='darkorange', alpha=0.8, edgecolor='black', lw=1.5, label="Perfil Custom (mm)")
                 ax.add_patch(poly_custom)
                 ax.plot(0, 0, 'ro', markersize=6, label="Baricentro (0,0)")
                 
                 all_x = [v[0] for v in verts_p1]
                 all_y = [v[1] for v in verts_p1]
-                margin = max(max(all_x)-min(all_x), max(all_y)-min(all_y)) * 0.4 + 2
+                margin = max(max(all_x)-min(all_x), max(all_y)-min(all_y)) * 0.4 + 5
                 ax.set_xlim(-margin, margin)
                 ax.set_ylim(-margin, margin)
             else:
-                ax.text(0, 0, "Esperando archivo DXF válido...", ha='center', va='center', fontsize=11, color='gray')
-                ax.set_xlim(-10, 10)
-                ax.set_ylim(-10, 10)
+                ax.text(0, 0, "Esperando archivo DXF en mm...", ha='center', va='center', fontsize=11, color='gray')
+                ax.set_xlim(-50, 50)
+                ax.set_ylim(-50, 50)
 
             ax.set_aspect('equal', adjustable='box')
-            ax.set_xlabel("X [cm]")
-            ax.set_ylabel("Y [cm]")
+            ax.set_xlabel("X [mm]")
+            ax.set_ylabel("Y [mm]")
             ax.grid(True, linestyle='--', alpha=0.5)
             ax.legend(loc='upper right', fontsize=8)
             st.pyplot(fig)
@@ -491,8 +491,26 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         else:
             wx_sup, wx_inf, wy_der, wy_izq = 0, 0, 0, 0
 
+        # PANEL DE RESULTADOS EN MM PARA PERFIL PERSONALIZADO
+        st.markdown("---")
+        st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
+
+        c_r1, c_r2, c_r3, c_r4 = st.columns(4)
+        with c_r1:
+            st.metric("Área Total (A):", f"{area_tot:,.1f} mm²")
+            st.metric("Baricentro Y_G:", f"{yg_comp:.1f} mm")
+        with c_r2:
+            st.metric("Inercia Ix Total:", f"{ix_tot:,.0f} mm⁴")
+            st.metric("Inercia Iy Total:", f"{iy_tot:,.0f} mm⁴")
+        with c_r3:
+            st.metric("Wx Superior:", f"{wx_sup:,.0f} mm³")
+            st.metric("Wx Inferior:", f"{wx_inf:,.0f} mm³")
+        with c_r4:
+            st.metric("Wy Derecho:", f"{wy_der:,.0f} mm³")
+            st.metric("Wy Izquierdo:", f"{wy_izq:,.0f} mm³")
+
     else:
-        # MODO CATÁLOGO COMERCIAL (P1 + P2 combinados)
+        # MODO CATÁLOGO COMERCIAL (P1 + P2) - Conserva unidades estándar de catálogo
         with col_pantalla_izq:
             col_p1, col_p2 = st.columns(2)
 
@@ -605,20 +623,20 @@ elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente 
         wy_der = iy_tot / d_der if d_der > 0 else 0
         wy_izq = iy_tot / d_izq if d_izq > 0 else 0
 
-    # PANEL DE RESULTADOS FINALES
-    st.markdown("---")
-    st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
+        # PANEL DE RESULTADOS EN CM PARA CATÁLOGO
+        st.markdown("---")
+        st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
 
-    c_r1, c_r2, c_r3, c_r4 = st.columns(4)
-    with c_r1:
-        st.metric("Área Total (A):", f"{area_tot:.2f} cm²")
-        st.metric("Baricentro Y_G:", f"{yg_comp:.2f} cm")
-    with c_r2:
-        st.metric("Inercia Ix Total:", f"{ix_tot:,.1f} cm⁴")
-        st.metric("Inercia Iy Total:", f"{iy_tot:,.1f} cm⁴")
-    with c_r3:
-        st.metric("Wx Superior:", f"{wx_sup:,.1f} cm³")
-        st.metric("Wx Inferior:", f"{wx_inf:,.1f} cm³")
-    with c_r4:
-        st.metric("Wy Derecho:", f"{wy_der:,.1f} cm³")
-        st.metric("Wy Izquierdo:", f"{wy_izq:,.1f} cm³")
+        c_r1, c_r2, c_r3, c_r4 = st.columns(4)
+        with c_r1:
+            st.metric("Área Total (A):", f"{area_tot:.2f} cm²")
+            st.metric("Baricentro Y_G:", f"{yg_comp:.2f} cm")
+        with c_r2:
+            st.metric("Inercia Ix Total:", f"{ix_tot:,.1f} cm⁴")
+            st.metric("Inercia Iy Total:", f"{iy_tot:,.1f} cm⁴")
+        with c_r3:
+            st.metric("Wx Superior:", f"{wx_sup:,.1f} cm³")
+            st.metric("Wx Inferior:", f"{wx_inf:,.1f} cm³")
+        with c_r4:
+            st.metric("Wy Derecho:", f"{wy_der:,.1f} cm³")
+            st.metric("Wy Izquierdo:", f"{wy_izq:,.1f} cm³")

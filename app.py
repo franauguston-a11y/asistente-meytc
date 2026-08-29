@@ -37,16 +37,34 @@ if modulo == "🛞 Módulo 1: Simulación Rodamientos (ISO 281)":
         cap_c = st.number_input("Capacidad de Carga Dinámica C (kN):", min_value=1.0, value=104.0)
         rpm = st.slider("Velocidad de Giro (rpm):", min_value=10, max_value=1000, value=150, step=10)
         tipo_elem = st.radio("Contacto / Elemento Rodante:", ["Bolas (p=3)", "Rodillos (p=10/3)"])
+        
+        st.markdown("**Régimen de Operación (Para cálculo en años)**")
+        col_hs, col_dias = st.columns(2)
+        with col_hs:
+            horas_dia = st.number_input("Horas de uso por día (h/día):", min_value=1.0, max_value=24.0, value=8.0, step=1.0)
+        with col_dias:
+            dias_ano = st.number_input("Días de uso por año (días/año):", min_value=1, max_value=365, value=250, step=5)
 
     with col2:
         st.subheader("Resultado de la Simulación")
         p_exp = 3.0 if "Bolas" in tipo_elem else (10.0 / 3.0)
         l10_mill = (cap_c / carga_p) ** p_exp
         l10_horas = (10**6 / (60 * rpm)) * l10_mill
+        
+        # Cálculo de vida útil en años
+        horas_anuales = horas_dia * dias_ano
+        anos_util = l10_horas / horas_anuales if horas_anuales > 0 else 0
 
-        st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
+        # Visualización de métricas
+        m1, m2 = st.columns(2)
+        with m1:
+            st.metric(label="Vida Útil Simulada L10h:", value=f"{l10_horas:,.0f} hs")
+        with m2:
+            st.metric(label="Vida Útil Estimativa (Años):", value=f"{anos_util:,.1f} años")
+
         st.markdown(f"$$L_{{10}} = \\left( \\frac{{{cap_c}}}{{{carga_p}}} \\right)^{{{p_exp:.2f}}} = {l10_mill:.2f} \\text{{ millones de revoluciones}}$$")
         st.markdown(f"$$L_{{10h}} = \\frac{{10^6}}{{60 \\cdot {rpm}}} \\cdot {l10_mill:.2f} = {l10_horas:,.0f} \\text{{ horas}}$$")
+        st.markdown(f"* **Régimen considerado:** {horas_dia:.0f} hs/día × {dias_ano} días/año = {horas_anuales:,.0f} hs/año.")
 
 # ==============================================================================
 # MÓDULO 2: BUSCADOR DE CATÁLOGOS CON IA (Multiparámetro Extendido)

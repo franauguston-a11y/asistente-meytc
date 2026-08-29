@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import math
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 # ==============================================================================
 # CONFIGURACIÓN GENERAL DE LA APLICACIÓN
@@ -36,7 +38,7 @@ modulo = st.sidebar.radio(
     [
         "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)",
         "🛞 Módulo 2: Simulación Rodamientos (ISO 281)",
-        "📐 Módulo 3: Vigas Combinadas y Módulo Resistente (Steiner)"
+        "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)"
     ]
 )
 
@@ -47,7 +49,6 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
     st.header("🏗️ Selección y Dimensionado de Cables de Acero (Norma DIN 655)")
     st.markdown("Cálculo de solicitación en ramales, diámetro de cable, coeficientes de seguridad y dimensionado de tambor y poleas.")
 
-    # TABLAS DE REFERENCIA DIN 655
     tabla5 = {
         ("Movimiento de precisión", "Sin precisar"): "I",
         ("Movimiento poco frecuente", "Raramente a plena carga"): "II",
@@ -65,7 +66,6 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         "V":   {"kc": (0.37, 0.40), "mnu_130_160": (8.0, 9.5), "ct": (8, 9),  "cp": (9.0, 12.0), "cpc": (6.0, 7.5)}
     }
 
-    # Cargas de rotura DIN 655 (kgf) para 6x19 y 6x37
     tabla3_din655 = {
         "6x19": {
             6.5: {130: 1860, 160: 2300, 180: 2550},
@@ -99,7 +99,6 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         }
     }
 
-    # Geometría del ranurado (Tabla 13)
     tabla13 = [
         {"dc": 10, "s": 12, "r": 5.5, "a": 1.0},
         {"dc": 13, "s": 15, "r": 7.0, "a": 1.5},
@@ -112,7 +111,6 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         {"dc": 44, "s": 49, "r": 24.0, "a": 6.0}
     ]
 
-    # --- NAVEGACIÓN INTERNA POR PESTAÑAS ---
     tab_cable_m3, tab_tambor_m3, tab_polea_m3 = st.tabs([
         "🪢 1. Selección del Cable",
         "🥁 2. Dimensionamiento de Tambor",
@@ -121,7 +119,6 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
 
     with tab_cable_m3:
         col1, col2 = st.columns(2)
-
         with col1:
             st.subheader("1. Solicitación y Clasificación")
             p_kgf = st.number_input("Carga total P (kgf):", min_value=100.0, value=10000.0, step=500.0)
@@ -130,10 +127,7 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
 
             st.metric("Solicitación por Ramal (Sram):", f"{s_ram:,.1f} kgf")
 
-            frecuencia = st.selectbox(
-                "Frecuencia de los movimientos:",
-                ["Movimiento de precisión", "Movimiento poco frecuente", "Movimiento frecuente"]
-            )
+            frecuencia = st.selectbox("Frecuencia de los movimientos:", ["Movimiento de precisión", "Movimiento poco frecuente", "Movimiento frecuente"])
             
             opciones_importancia = []
             if frecuencia == "Movimiento de precisión":
@@ -166,14 +160,12 @@ if modulo == "🏗️ Módulo 1: Selección de Cables (Norma DIN 655)":
         with col2:
             st.subheader("2. Dimensionado del Cable")
             kc_adoptado = st.number_input("Adopto Coeficiente $k_c$:", min_value=0.1, max_value=1.0, value=kc_min, step=0.01)
-            
             diam_teorico = kc_adoptado * math.sqrt(s_ram)
             st.info(f"📐 **Diámetro Teórico Calculado:** $d_{{calc}} = {kc_adoptado} \\cdot \\sqrt{{{s_ram:.0f}}} = {diam_teorico:.2f} \\text{{ mm}}$")
 
             dc_adoptado = st.number_input("Adopto Diámetro Comercial $D_c$ (mm):", min_value=1.0, value=float(math.ceil(diam_teorico)), step=1.0)
 
             st.markdown("#### Verificación de Carga de Rotura y Seguridad")
-            
             col_m, col_r = st.columns(2)
             with col_m:
                 construccion = st.selectbox("Construcción del Cable:", ["6x19", "6x37"])
@@ -371,134 +363,203 @@ elif modulo == "🛞 Módulo 2: Simulación Rodamientos (ISO 281)":
     st.caption("📖 *Fuente de referencia: Norma Internacional ISO 281 (Cálculo de capacidad de carga dinámica y vida nominal de rodamientos).*")
 
 # ==============================================================================
-# MÓDULO 3: VIGAS COMBINADAS Y MÓDULO RESISTENTE (TEOREMA DE STEINER)
+# MÓDULO 3: VIGAS COMBINADAS, GRÁFICO Y MÓDULO RESISTENTE (TEOREMA DE STEINER)
 # ==============================================================================
-elif modulo == "📐 Módulo 3: Vigas Combinadas y Módulo Resistente (Steiner)":
-    st.header("📐 Cálculo del Módulo Resistente ($W$) en Vigas Simples y Combinadas")
-    st.markdown("Determinación del baricentro compuesto, momentos de inercia y módulos resistentes a flexión ($W_x$, $W_y$) aplicando el **Teorema de Steiner**.")
+elif modulo == "📐 Módulo 3: Vigas Combinadas, Gráfico y Módulo Resistente (Steiner)":
+    st.header("📐 Cálculo de Módulo Resistente y Gráfico 2D Paramétrico (Steiner)")
+    st.markdown("Diseño dinámico de secciones compuestas por soldeo de perfiles. Define la ubicación y orientación exacta del perfil de refuerzo con representación gráfica instantánea.")
 
-    # BD Reducida de Perfiles Estándar (DIN 1025 / DIN 1026) en cm, cm2, cm4
+    # BD de Perfiles Estándar (DIN 1025 / DIN 1026) en cm, cm2, cm4
     cat_ipn = {
-        "IPN 160": {"h": 16.0, "b": 7.4, "area": 22.8, "ix": 935.0, "iy": 54.7},
-        "IPN 200": {"h": 20.0, "b": 9.0, "area": 33.4, "ix": 2140.0, "iy": 117.0},
-        "IPN 240": {"h": 24.0, "b": 10.6, "area": 46.1, "ix": 4250.0, "iy": 221.0},
-        "IPN 300": {"h": 30.0, "b": 12.5, "area": 69.0, "ix": 9800.0, "iy": 451.0},
-        "IPN 400": {"h": 40.0, "b": 15.5, "area": 118.0, "ix": 29210.0, "iy": 1050.0}
+        "IPN 160": {"h": 16.0, "b": 7.4, "tw": 0.63, "tf": 0.95, "area": 22.8, "ix": 935.0, "iy": 54.7},
+        "IPN 200": {"h": 20.0, "b": 9.0, "tw": 0.75, "tf": 1.13, "area": 33.4, "ix": 2140.0, "iy": 117.0},
+        "IPN 240": {"h": 24.0, "b": 10.6, "tw": 0.87, "tf": 1.31, "area": 46.1, "ix": 4250.0, "iy": 221.0},
+        "IPN 300": {"h": 30.0, "b": 12.5, "tw": 1.08, "tf": 1.62, "area": 69.0, "ix": 9800.0, "iy": 451.0},
+        "IPN 400": {"h": 40.0, "b": 15.5, "tw": 1.44, "tf": 2.16, "area": 118.0, "ix": 29210.0, "iy": 1050.0}
     }
 
     cat_upn = {
-        "UPN 160": {"h": 16.0, "b": 6.5, "area": 24.0, "ix": 925.0, "iy": 85.3, "ey": 1.84},
-        "UPN 200": {"h": 20.0, "b": 7.5, "area": 32.2, "ix": 1910.0, "iy": 148.0, "ey": 2.01},
-        "UPN 240": {"h": 24.0, "b": 8.5, "area": 42.3, "ix": 3600.0, "iy": 248.0, "ey": 2.23},
-        "UPN 300": {"h": 30.0, "b": 10.0, "area": 58.8, "ix": 8030.0, "iy": 495.0, "ey": 2.70}
+        "UPN 160": {"h": 16.0, "b": 6.5, "tw": 0.75, "tf": 1.05, "area": 24.0, "ix": 925.0, "iy": 85.3, "ey": 1.84},
+        "UPN 200": {"h": 20.0, "b": 7.5, "tw": 0.85, "tf": 1.15, "area": 32.2, "ix": 1910.0, "iy": 148.0, "ey": 2.01},
+        "UPN 240": {"h": 24.0, "b": 8.5, "tw": 0.95, "tf": 1.30, "area": 42.3, "ix": 3600.0, "iy": 248.0, "ey": 2.23},
+        "UPN 300": {"h": 30.0, "b": 10.0, "tw": 1.00, "tf": 1.60, "area": 58.8, "ix": 8030.0, "iy": 495.0, "ey": 2.70}
     }
 
-    config_viga = st.selectbox(
-        "Seleccioná la Configuración Estructural:",
-        [
-            "1. Perfil Único (IPN o UPN)",
-            "2. Viga Carril Compuesta: IPN + UPN Solapado en Ala Superior",
-            "3. Perfil Doble UPN Unido por Almas (Perfil Cajón)"
-        ]
-    )
-    st.caption("📖 *Fuente: Geometrías y propiedades mecánicas extraídas de tablas de perfiles laminados DIN 1025 / DIN 1026.*")
+    col_ctrl, col_vis = st.columns([1.1, 1.2])
 
-    col_inp, col_out = st.columns([1, 1])
+    with col_ctrl:
+        st.subheader("1. Configuración de la Viga Base (Perfil 1)")
+        tipo_p1 = st.selectbox("Tipo Perfil Principal (Base):", ["IPN", "UPN"], index=0)
+        prof1_name = st.selectbox("Designación Perfil 1:", list(cat_ipn.keys()) if tipo_p1 == "IPN" else list(cat_upn.keys()), index=2)
+        p1 = cat_ipn[prof1_name] if tipo_p1 == "IPN" else cat_upn[prof1_name]
 
-    with col_inp:
-        st.subheader("⚙️ Selección de Perfiles")
-        
-        if config_viga == "1. Perfil Único (IPN o UPN)":
-            tipo_p = st.radio("Tipo de Perfil:", ["IPN", "UPN"])
-            prof_name = st.selectbox("Designación Comercial:", list(cat_ipn.keys()) if tipo_p == "IPN" else list(cat_upn.keys()))
-            
-            p_sel = cat_ipn[prof_name] if tipo_p == "IPN" else cat_upn[prof_name]
-            h_tot = p_sel["h"]
-            area_tot = p_sel["area"]
-            ix_tot = p_sel["ix"]
-            iy_tot = p_sel["iy"]
-            y_g = h_tot / 2.0
-            
-            wx_inf = ix_tot / y_g
-            wx_sup = wx_inf
-
-        elif config_viga == "2. Viga Carril Compuesta: IPN + UPN Solapado en Ala Superior":
-            st.info("💡 Configuración estándar en puentes grúa: El UPN se suelda 'acostado' sobre el ala superior del IPN.")
-            ipn_name = st.selectbox("Perfil Principal Inferior (IPN):", list(cat_ipn.keys()), index=2)
-            upn_name = st.selectbox("Perfil Refuerzo Superior (UPN):", list(cat_upn.keys()), index=1)
-
-            p_ipn = cat_ipn[ipn_name]
-            p_upn = cat_upn[upn_name]
-
-            # Referencia de alturas respecto a la base del IPN
-            y_ipn = p_ipn["h"] / 2.0
-            # Al estar acostado el UPN, su altura agregada es su espesor b_upn
-            y_upn = p_ipn["h"] + (p_upn["ey"]) # Centroide del UPN respecto a la base del IPN
-
-            area_tot = p_ipn["area"] + p_upn["area"]
-            
-            # Baricentro compuesto respecto a la base del IPN
-            y_g = ((p_ipn["area"] * y_ipn) + (p_upn["area"] * y_upn)) / area_tot
-
-            # Steiner respecto a eje X
-            # Para el UPN acostado, su inercia respecto a su eje paralelo a X es iy_upn
-            ix_tot = (p_ipn["ix"] + p_ipn["area"] * (y_ipn - y_g)**2) + (p_upn["iy"] + p_upn["area"] * (y_upn - y_g)**2)
-            
-            # Inercia respecto al eje vertical Y
-            iy_tot = p_ipn["iy"] + p_upn["ix"]
-
-            h_tot = p_ipn["h"] + p_upn["b"] # Altura total del conjunto
-            y_max_sup = h_tot - y_g
-            y_max_inf = y_g
-
-            wx_inf = ix_tot / y_max_inf
-            wx_sup = ix_tot / y_max_sup
-
-        elif config_viga == "3. Perfil Doble UPN Unido por Almas (Perfil Cajón)":
-            upn_name = st.selectbox("Perfil UPN Seleccionado:", list(cat_upn.keys()), index=1)
-            p_upn = cat_upn[upn_name]
-
-            h_tot = p_upn["h"]
-            area_tot = 2 * p_upn["area"]
-            ix_tot = 2 * p_upn["ix"]
-            
-            # Steiner para Y si están separados o unidos por almas
-            d_almas = st.number_input("Distancia entre almas (cm):", min_value=0.0, value=0.0, step=0.5)
-            y_upn_dist = p_upn["ey"] + (d_almas / 2.0)
-            iy_tot = 2 * (p_upn["iy"] + p_upn["area"] * (y_upn_dist)**2)
-
-            y_g = h_tot / 2.0
-            wx_inf = ix_tot / y_g
-            wx_sup = wx_inf
-
-    with col_out:
-        st.subheader("📊 Resultados Geométricos y Resistentes")
-
-        st.markdown(f"""
-        * **Área Total del Conjunto ($A$):** `{area_tot:.2f} cm²`
-        * **Altura Total ($H_{{tot}}$):** `{h_tot:.2f} cm`
-        * **Posición del Baricentro ($Y_G$ desde la base):** `{y_g:.2f} cm`
-        """)
-        st.caption("📖 *Fuente: Cálculo baricéntrico por momentos de superficie $Y_G = \\frac{\\sum A_i \\cdot y_i}{\\sum A_i}$.*")
+        # Posición fija inicial Perfil 1 (Centroide en X=0, Y=h1/2)
+        x1_c, y1_c = 0.0, p1["h"] / 2.0
+        ix1, iy1, a1 = p1["ix"], p1["iy"], p1["area"]
 
         st.divider()
+        st.subheader("2. Perfil de Refuerzo Soldado (Perfil 2)")
+        agregar_p2 = st.checkbox("¿Agregar segundo perfil soldado?", value=True)
 
-        st.markdown(f"""
-        #### Momentos de Inercia Totales (Steiner)
-        * **Inercia respecto al eje X ($I_{{x,tot}}$):** **`{ix_tot:,.1f} cm⁴`**
-        * **Inercia respecto al eje Y ($I_{{y,tot}}$):** **`{iy_tot:,.1f} cm⁴`**
-        """)
-        st.caption("📖 *Fuente: Aplicación del Teorema de Steiner $I = I_0 + A \\cdot d^2$.*")
+        if agregar_p2:
+            tipo_p2 = st.selectbox("Tipo Perfil Refuerzo:", ["UPN", "IPN"], index=0)
+            prof2_name = st.selectbox("Designación Perfil 2:", list(cat_upn.keys()) if tipo_p2 == "UPN" else list(cat_ipn.keys()), index=1)
+            p2 = cat_upn[prof2_name] if tipo_p2 == "UPN" else cat_ipn[prof2_name]
 
-        st.divider()
+            preset = st.radio(
+                "Posicionamiento Rápido predeterminado:",
+                [
+                    "Ala Superior (Viga Carril - UPN Acostado C invertida)",
+                    "Ala Inferior (Refuerzo inferior)",
+                    "Alma Lateral Derecha",
+                    "Personalizado (Ajuste de coordenadas exactas)"
+                ]
+            )
 
-        st.markdown(f"""
-        #### Módulos Resistentes a Flexión ($W$)
-        * **Módulo Resistente Inferior ($W_{{x,inf}}$):** **`{wx_inf:,.1f} cm³`**
-        * **Módulo Resistente Superior ($W_{{x,sup}}$):** **`{wx_sup:,.1f} cm³`**
-        * **Módulo Resistente respecto a Y ($W_y$):** **`{(iy_tot / (max(p_sel['b'], p_sel['h']) if config_viga=='1. Perfil Único (IPN o UPN)' else h_tot/2)):,.1f} cm³`**
-        """)
-        st.caption("📖 *Fuente: Módulo resistente $W = \\frac{I}{y_{max}}$ a fibra extrema.*")
+            # Lógica de posición por defecto
+            if preset == "Ala Superior (Viga Carril - UPN Acostado C invertida)":
+                rot2 = 90 # 90 o acostado
+                def_x = 0.0
+                def_y = p1["h"] + (p2["ey"] if tipo_p2 == "UPN" else p2["h"]/2.0)
+            elif preset == "Ala Inferior (Refuerzo inferior)":
+                rot2 = 0
+                def_x = 0.0
+                def_y = -p2["h"]/2.0
+            elif preset == "Alma Lateral Derecha":
+                rot2 = 0
+                def_x = (p1["b"]/2.0) + (p2["b"]/2.0 if tipo_p2=="UPN" else p2["b"]/2.0)
+                def_y = p1["h"]/2.0
+            else:
+                rot2 = 0
+                def_x, def_y = 0.0, p1["h"]
+
+            col_dx, col_dy = st.columns(2)
+            with col_dx:
+                dx2 = st.number_input("Desplazamiento ΔX del Baricentro 2 (cm):", value=float(def_x), step=0.5)
+            with col_dy:
+                dy2 = st.number_input("Desplazamiento ΔY del Baricentro 2 (cm):", value=float(def_y), step=0.5)
+
+            rot_p2 = st.selectbox("Orientación del Perfil 2:", [0, 90, 180, 270], index=0 if rot2==0 else 1)
+
+            # Ajuste de inercias según rotación del perfil 2 (0°/180° vs 90°/270°)
+            a2 = p2["area"]
+            x2_c, y2_c = dx2, dy2
+
+            if rot_p2 in [90, 270]:
+                ix2_local = p2["iy"]
+                iy2_local = p2["ix"]
+                h2_efec = p2["b"]
+                b2_efec = p2["h"]
+            else:
+                ix2_local = p2["ix"]
+                iy2_local = p2["iy"]
+                h2_efec = p2["h"]
+                b2_efec = p2["b"]
+        else:
+            a2, x2_c, y2_c, ix2_local, iy2_local = 0.0, 0.0, 0.0, 0.0, 0.0
+            h2_efec, b2_efec = 0.0, 0.0
+
+        st.caption("📖 *Fuente: Geometrías y propiedades de tablas normativas DIN 1025 / DIN 1026.*")
+
+    # ==========================================================================
+    # CÁLCULOS MATEMÁTICOS DE STEINER Y PROPIEDADES COMPUESTAS
+    # ==========================================================================
+    area_tot = a1 + a2
+    xg_comp = ((a1 * x1_c) + (a2 * x2_c)) / area_tot
+    yg_comp = ((a1 * y1_c) + (a2 * y2_c)) / area_tot
+
+    # Inercias compuestas por Steiner
+    ix_tot = (ix1 + a1 * (y1_c - yg_comp)**2) + (ix2_local + a2 * (y2_c - yg_comp)**2) if agregar_p2 else ix1
+    iy_tot = (iy1 + a1 * (x1_c - xg_comp)**2) + (iy2_local + a2 * (x2_c - xg_comp)**2) if agregar_p2 else iy1
+
+    # Determinación de contornos extremos para Módulos Resistentes
+    y_min_elem1 = 0.0
+    y_max_elem1 = p1["h"]
+    x_min_elem1 = -p1["b"]/2.0
+    x_max_elem1 = p1["b"]/2.0
+
+    if agregar_p2:
+        y_min_elem2 = y2_c - (h2_efec / 2.0)
+        y_max_elem2 = y2_c + (h2_efec / 2.0)
+        x_min_elem2 = x2_c - (b2_efec / 2.0)
+        x_max_elem2 = x2_c + (b2_efec / 2.0)
+
+        y_max_tot = max(y_max_elem1, y_max_elem2)
+        y_min_tot = min(y_min_elem1, y_min_elem2)
+        x_max_tot = max(x_max_elem1, x_max_elem2)
+        x_min_tot = min(x_min_elem1, x_min_elem2)
+    else:
+        y_max_tot, y_min_tot = y_max_elem1, y_min_elem1
+        x_max_tot, x_min_tot = x_max_elem1, x_min_elem1
+
+    d_sup = y_max_tot - yg_comp
+    d_inf = yg_comp - y_min_tot
+    d_der = x_max_tot - xg_comp
+    d_izq = xg_comp - x_min_tot
+
+    wx_sup = ix_tot / d_sup if d_sup > 0 else 0
+    wx_inf = ix_tot / d_inf if d_inf > 0 else 0
+    wy_der = iy_tot / d_der if d_der > 0 else 0
+    wy_izq = iy_tot / d_izq if d_izq > 0 else 0
+
+    # ==========================================================================
+    # VISUALIZACIÓN GRÁFICA EN TIEMPO REAL
+    # ==========================================================================
+    with col_vis:
+        st.subheader("🖼️ Representación Gráfica de la Sección Compuesta")
+
+        fig, ax = plt.subplots(figsize=(6, 6))
+
+        # Dibujo esquemático del Perfil 1 (Base en azul)
+        rect_p1_flange_bot = patches.Rectangle((-p1["b"]/2, 0), p1["b"], p1["tf"], color='navy', alpha=0.7, label=f"P1: {prof1_name}")
+        rect_p1_web = patches.Rectangle((-p1["tw"]/2, p1["tf"]), p1["tw"], p1["h"] - 2*p1["tf"], color='navy', alpha=0.7)
+        rect_p1_flange_top = patches.Rectangle((-p1["b"]/2, p1["h"] - p1["tf"]), p1["b"], p1["tf"], color='navy', alpha=0.7)
+
+        ax.add_patch(rect_p1_flange_bot)
+        ax.add_patch(rect_p1_web)
+        ax.add_patch(rect_p1_flange_top)
+
+        # Dibujo esquemático del Perfil 2 (Refuerzo en rojo/naranja)
+        if agregar_p2:
+            rect_p2 = patches.Rectangle(
+                (x2_c - b2_efec/2, y2_c - h2_efec/2), b2_efec, h2_efec,
+                color='firebrick', alpha=0.6, label=f"P2: {prof2_name} ({rot_p2}°)"
+            )
+            ax.add_patch(rect_p2)
+
+        # Marcado del Baricentro Compuesto
+        ax.axhline(yg_comp, color='crimson', linestyle='--', linewidth=1.5, label=f'Eje Neutro X_G ({yg_comp:.2f} cm)')
+        ax.axvline(xg_comp, color='darkgreen', linestyle=':', linewidth=1.5, label=f'Eje Neutro Y_G ({xg_comp:.2f} cm)')
+        ax.plot(xg_comp, yg_comp, 'ro', markersize=8)
+
+        # Configuración del gráfico
+        margin = 8.0
+        ax.set_xlim(x_min_tot - margin, x_max_tot + margin)
+        ax.set_ylim(y_min_tot - margin, y_max_tot + margin)
+        ax.set_aspect('equal', adjustable='box')
+        ax.set_xlabel("X [cm]")
+        ax.set_ylabel("Y [cm]")
+        ax.set_title("Corte Transversal de la Viga y Ejes Baricéntricos", fontsize=11, fontweight='bold')
+        ax.grid(True, linestyle='--', alpha=0.5)
+        ax.legend(loc='upper right', fontsize=8)
+
+        st.pyplot(fig)
 
     st.markdown("---")
-    st.caption("📖 *Referencias normativas del módulo: DIN 1025 / DIN 1026 y Métodos Clásicos de Resistencias de Materiales.*")
+    st.subheader("📊 Módulos Resistentes y Propiedades Mecánicas Resultantes")
+
+    c_r1, c_r2, c_r3, c_r4 = st.columns(4)
+    with c_r1:
+        st.metric("Área Total (A):", f"{area_tot:.2f} cm²")
+        st.metric("Baricentro Y_G:", f"{yg_comp:.2f} cm")
+    with c_r2:
+        st.metric("Inercia Ix Total:", f"{ix_tot:,.1f} cm⁴")
+        st.metric("Inercia Iy Total:", f"{iy_tot:,.1f} cm⁴")
+    with c_r3:
+        st.metric("Wx Superior:", f"{wx_sup:,.1f} cm³")
+        st.metric("Wx Inferior:", f"{wx_inf:,.1f} cm³")
+    with c_r4:
+        st.metric("Wy Derecho:", f"{wy_der:,.1f} cm³")
+        st.metric("Wy Izquierdo:", f"{wy_izq:,.1f} cm³")
+
+    st.caption("📖 *Referencias normativas: Teorema de los Ejes Paralelos (Steiner) y Tablas de Perfiles Laminados DIN 1025 / DIN 1026.*")
